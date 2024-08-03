@@ -9,6 +9,8 @@ opcode_t program[] = {
 };
 
 int main(int argc, char **argv) {
+    UNUSED_VAR(argc);
+    UNUSED_VAR(argv);
     
     tvm_t vm = tvm_init();
     tvm_load_program_from_memory(&vm, program, 4);
