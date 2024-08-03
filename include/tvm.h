@@ -9,7 +9,7 @@
 #define TVM_PROGRAM_CAPACITY 1024
 
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
-
+#define UNUSED_VAR(x) ((void)(x))
 typedef enum {
     EXCEPT_OK,
     EXCEPT_STACK_UNDERFLOW,
@@ -88,15 +88,18 @@ void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* program, size_t pro
 }
 
 void tvm_save_program_to_memory(tvm_t* vm, opcode_t* program) {
-
+    UNUSED_VAR(vm);
+    UNUSED_VAR(program);
 }
 
 void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
-
+    UNUSED_VAR(vm);
+    UNUSED_VAR(file_path);
 }
 
 void tvm_save_program_to_file(tvm_t* vm, const char* file_path) {
-
+    UNUSED_VAR(vm);
+    UNUSED_VAR(file_path);
 }
 
 
@@ -118,6 +121,7 @@ const char* exception_to_cstr(exception_t except) {
         fprintf(stderr, "Unhandled exception string on function: exception_to_cstr\n");
         break;
     }
+    return NULL;
 }
 
 tvm_t tvm_init() {
@@ -199,20 +203,20 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         break;
     case OP_ADDF:
         /* not implemented yet */
-        break;
         vm->ip++;
+        break;
     case OP_SUBF:
         /* not implemented yet */
-        break;
         vm->ip++;
+        break;
     case OP_MULTF:
         /* not implemented yet */
-        break;
         vm->ip++;
+        break;
     case OP_DIVF:
         /* not implemented yet */
-        break;
         vm->ip++;
+        break;
     case OP_JMP:
         /* not implemented yet */
         vm->ip++;
@@ -248,7 +252,7 @@ void tvm_run(tvm_t* vm) {
 void tvm_stack_dump(tvm_t *vm) {
     fprintf(stdout, "stack:\n");
     for (size_t i = 0; i < vm->sp; i++) {
-        fprintf(stdout, "0x%08x: %d\n", i, vm->stack[i]);
+        fprintf(stdout, "0x%08x: %d\n", i, vm->stack[i].i32);
     }
 }
 
