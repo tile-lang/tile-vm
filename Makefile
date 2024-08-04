@@ -1,8 +1,14 @@
-CFLAGS = -Wall -Wextra -Wno-missing-braces
+CFLAGS = -Wall -Wextra -Wno-missing-braces -std=c11
+CC = gcc
 
-make: tvm
+all: tvm tasm
 
 run: tvm
 	./build/tvm.exe
 tvm:
-	gcc $(CFLAGS) ./src/tvm.c -I ./include -o ./build/tvm.exe
+	if not exist build mkdir build
+	$(CC) $(CFLAGS) ./src/tvm.c -I ./include -o ./build/tvm.exe
+
+tasm:
+	if not exist build mkdir build
+	$(CC) $(CFLAGS) ./src/tasm.c -I ./include -o ./build/tasm.exe
