@@ -1,5 +1,5 @@
 #define TVM_IMPLEMENTATION
-#include <tvm.h>
+#include <tvm/tvm.h>
 
 opcode_t program[] = {
     {.type = OP_PUSH, .operand = 3},
