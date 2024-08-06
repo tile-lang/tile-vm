@@ -15,6 +15,7 @@ typedef enum {
     EXCEPT_STACK_UNDERFLOW,
     EXCEPT_STACK_OVERFLOW,
     EXCEPT_INVALID_INSTRUCTION,
+    EXCEPT_INVALID_INSTRUCTION_ACCESS,
     EXCEPT_DIVISION_BY_ZERO,
 } exception_t;
 
@@ -114,6 +115,8 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_STACK_OVERFLOW";
     case EXCEPT_INVALID_INSTRUCTION:
         return "EXCEPT_INVALID_INSTRUCTION";
+    case EXCEPT_INVALID_INSTRUCTION_ACCESS:
+        return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
     case EXCEPT_DIVISION_BY_ZERO:
         return "EXCEPT_DIVISION_BY_ZERO";
     
@@ -198,33 +201,66 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->ip++;
         break;
     case OP_DUP:
-        /* not implemented yet */
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp].i32 = vm->stack[vm->sp - 1].i32;
+        vm->sp++;
         vm->ip++;
         break;
     case OP_ADDF:
-        /* not implemented yet */
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp - 2].f32 += vm->stack[vm->sp - 1].f32;
+        vm->sp--;
         vm->ip++;
         break;
     case OP_SUBF:
-        /* not implemented yet */
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp - 2].f32 -= vm->stack[vm->sp - 1].f32;
+        vm->sp--;
         vm->ip++;
         break;
     case OP_MULTF:
-        /* not implemented yet */
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp - 2].f32 *= vm->stack[vm->sp - 1].f32;
+        vm->sp--;
         vm->ip++;
         break;
     case OP_DIVF:
-        /* not implemented yet */
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp - 2].f32 /= vm->stack[vm->sp - 1].f32;
+        vm->sp--;
         vm->ip++;
         break;
     case OP_JMP:
-        /* not implemented yet */
-        vm->ip++;
+        if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        vm->ip = inst.operand.i32;
+        // vm->ip++; you can delete this comment
         break;
     case OP_JNZ:
-        /* not implemented yet */
-        vm->ip++;
-        break;
+            if (vm->sp < 1)
+                return EXCEPT_STACK_UNDERFLOW;
+            else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+                return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+            if (vm->stack[vm->sp - 1].i32 != 0)
+                vm->ip = inst.operand.i32;
+            else 
+                vm->ip++;
+            break;
     case OP_HALT:
         vm->halted = true;
         vm->ip++;
@@ -252,7 +288,7 @@ void tvm_run(tvm_t* vm) {
 void tvm_stack_dump(tvm_t *vm) {
     fprintf(stdout, "stack:\n");
     for (size_t i = 0; i < vm->sp; i++) {
-        fprintf(stdout, "0x%08x: %d\n", i, vm->stack[i].i32);
+        fprintf(stdout, "0x%08x: %d (as int), %f (as float)\n", i, vm->stack[i].i32, vm->stack[i].f32); // Ask 0x%08zx you can delete this comment
     }
 }
 
