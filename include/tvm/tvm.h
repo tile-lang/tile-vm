@@ -7,9 +7,11 @@
 
 #define TVM_STACK_CAPACITY 1024
 #define TVM_PROGRAM_CAPACITY 1024
+#define RETURN_STACK_CAPACITY 1024
 
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 #define UNUSED_VAR(x) ((void)(x))
+
 typedef enum {
     EXCEPT_OK,
     EXCEPT_STACK_UNDERFLOW,
@@ -38,6 +40,8 @@ typedef enum {
     /* branching */
     OP_JMP,  // unconditional jump
     OP_JNZ,  // conditional jump
+    OP_CALL,
+    OP_RET,
     OP_HALT, // termination
 } optype_t;
 
@@ -55,6 +59,9 @@ typedef struct {
 typedef struct {
     object_t stack[TVM_STACK_CAPACITY];
     word_t sp; // stack pointer
+
+    object_t return_stack[RETURN_STACK_CAPACITY]; // object_t should be change with word_t? 
+    word_t rsp; // return stack pointer
 
     opcode_t program[TVM_PROGRAM_CAPACITY];
     size_t program_size;
@@ -119,7 +126,7 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
     case EXCEPT_DIVISION_BY_ZERO:
         return "EXCEPT_DIVISION_BY_ZERO";
-    
+        
     default:
         fprintf(stderr, "Unhandled exception string on function: exception_to_cstr\n");
         break;
@@ -131,6 +138,8 @@ tvm_t tvm_init() {
     return (tvm_t) {
         .stack = {0},
         .sp = 0,
+        .return_stack = {0},
+        .rsp = 0,
         .program = {0},
         .program_size = 0,
         .ip = 0,
@@ -261,6 +270,19 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             else 
                 vm->ip++;
             break;
+    case OP_CALL:
+            if (vm->rsp >= RETURN_STACK_CAPACITY)
+                return EXCEPT_STACK_OVERFLOW;
+            else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+                return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+            vm->return_stack[vm->rsp++].ui32 = vm->ip + 1;
+            vm->ip = inst.operand.i32;
+            break; 
+    case OP_RET:
+             if (vm->rsp < 1)
+                return EXCEPT_STACK_UNDERFLOW;
+            vm->ip = vm->return_stack[--vm->rsp].ui32;
+            break;        
     case OP_HALT:
         vm->halted = true;
         vm->ip++;
