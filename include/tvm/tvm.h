@@ -42,7 +42,10 @@ typedef enum {
     OP_JNZ,  // conditional jump
     OP_CALL,
     OP_RET,
-    OP_HALT, // termination
+    OP_CSTI,
+    OP_CSTU,
+    OP_CSTF,
+    OP_HALT // termination
 } optype_t;
 
 typedef union {
@@ -287,7 +290,18 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->halted = true;
         vm->ip++;
         break;
-    
+    case OP_CSTI:
+        // not implemented yet
+        vm->ip++;
+        break;
+    case OP_CSTU:
+        // not implemented yet
+        vm->ip++;
+        break;
+    case OP_CSTF:
+        // not implemented yet
+        vm->ip++;
+        break;
     default:
         return EXCEPT_INVALID_INSTRUCTION;
         break;
