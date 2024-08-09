@@ -1,7 +1,7 @@
 CFLAGS = -Wall -Wextra -Wno-missing-braces -std=c11
 CC = gcc
 
-all: tvm
+all: tvm tasm
 
 run: tvm
 	./build/tvm.exe
