@@ -2,7 +2,7 @@
 #include <tvm/tvm.h>
 
 opcode_t program[] = {
-    {.type = OP_PUSH, .operand.i32 = 17},
+    {.type = OP_PUSH, .operand.i32 = 16},
     {.type = OP_PUSH, .operand.f32 = 2.4},
     {.type = OP_CI2F},
     {.type = OP_PUSH, .operand.i32 = 34},
