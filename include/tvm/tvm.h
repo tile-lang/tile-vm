@@ -42,7 +42,13 @@ typedef enum {
     OP_JNZ,  // conditional jump
     OP_CALL,
     OP_RET,
-    OP_HALT, // termination
+    OP_CI2F,
+    OP_CI2U,
+    OP_CF2I,
+    OP_CF2U,
+    OP_CU2I,
+    OP_CU2F,
+    OP_HALT // termination
 } optype_t;
 
 typedef union {
@@ -60,7 +66,7 @@ typedef struct {
     object_t stack[TVM_STACK_CAPACITY];
     word_t sp; // stack pointer
 
-    object_t return_stack[RETURN_STACK_CAPACITY]; // object_t should be change with word_t? 
+    word_t return_stack[RETURN_STACK_CAPACITY]; // object_t should be change with word_t? 
     word_t rsp; // return stack pointer
 
     opcode_t program[TVM_PROGRAM_CAPACITY];
@@ -261,36 +267,71 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         // vm->ip++; you can delete this comment
         break;
     case OP_JNZ:
-            if (vm->sp < 1)
-                return EXCEPT_STACK_UNDERFLOW;
-            else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
-                return EXCEPT_INVALID_INSTRUCTION_ACCESS;
-            if (vm->stack[vm->sp - 1].i32 != 0)
-                vm->ip = inst.operand.i32;
-            else 
-                vm->ip++;
-            break;
-    case OP_CALL:
-            if (vm->rsp >= RETURN_STACK_CAPACITY)
-                return EXCEPT_STACK_OVERFLOW;
-            else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
-                return EXCEPT_INVALID_INSTRUCTION_ACCESS;
-            vm->return_stack[vm->rsp++].ui32 = vm->ip + 1;
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        if (vm->stack[vm->sp - 1].i32 != 0)
             vm->ip = inst.operand.i32;
-            break; 
+        else 
+            vm->ip++;
+        break;
+    case OP_CALL:
+        if (vm->rsp >= RETURN_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        vm->return_stack[vm->rsp++] = vm->ip + 1;
+        vm->ip = inst.operand.i32;
+        break; 
     case OP_RET:
-             if (vm->rsp < 1)
-                return EXCEPT_STACK_UNDERFLOW;
-            vm->ip = vm->return_stack[--vm->rsp].ui32;
-            break;        
+        if (vm->rsp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->ip = vm->return_stack[--vm->rsp];
+        break;
+    case OP_CI2F:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].i32;  
+        vm->ip++;
+        break;    
+    case OP_CI2U:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].ui32 = vm->stack[vm->sp - 1].i32;  
+        vm->ip++;
+        break;        
+    case OP_CF2I:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].i32 = vm->stack[vm->sp - 1].f32;  
+        vm->ip++;
+        break;
+    case OP_CF2U:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].ui32 = vm->stack[vm->sp - 1].f32;  
+        vm->ip++;
+        break;
+    case OP_CU2I:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].i32 = vm->stack[vm->sp - 1].ui32;  
+        vm->ip++;
+        break;
+    case OP_CU2F:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].ui32;  
+        vm->ip++;
+        break;
     case OP_HALT:
         vm->halted = true;
         vm->ip++;
         break;
-    
     default:
         return EXCEPT_INVALID_INSTRUCTION;
-        break;
+        break;    
     }
 
     return EXCEPT_OK;
