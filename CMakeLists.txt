@@ -5,6 +5,7 @@ set(CMAKE_C_STANDARD 11)
 
 # include for external
 include_directories(
+    "extern/stb/include"
 )
 
 # linked libs dir
