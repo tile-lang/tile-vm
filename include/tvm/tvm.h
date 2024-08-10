@@ -36,6 +36,10 @@ typedef enum {
     OP_SUBF,
     OP_MULTF,
     OP_DIVF,
+    OP_INC,
+    OP_INCF,
+    OP_DEC,
+    OP_DECF,
 
     /* branching */
     OP_JMP,  // unconditional jump
@@ -260,6 +264,22 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp--;
         vm->ip++;
         break;
+    case OP_INC:
+        vm->stack[vm->sp - 1].i32 += 1;
+        vm->ip++;
+        break;
+    case OP_INCF:
+        vm->stack[vm->sp - 1].f32 += 1;
+        vm->ip++;
+        break;
+    case OP_DEC:
+        vm->stack[vm->sp - 1].i32 -= 1;
+        vm->ip++;
+        break;
+    case OP_DECF:
+        vm->stack[vm->sp - 1].f32 -= 1;
+        vm->ip++;
+        break;
     case OP_JMP:
         if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
@@ -294,7 +314,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].i32;  
         vm->ip++;
-        break;    
+        break;
     case OP_CI2U:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
