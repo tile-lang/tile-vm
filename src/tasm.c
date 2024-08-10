@@ -49,6 +49,19 @@ int main(int argc, char **argv) {
     tasm_ast_t* ast = tasm_parse_file(&parser);
     tasm_ast_show(ast, 0);
 
+    tasm_translator_t translator = tasm_translator_init();
+    
+    tasm_resolve_labels(&translator, ast);
+    // tasm_resolve_label_calls(&translator, ast);
+    
+    symbol_dump(&translator);
+
+    tasm_translate_unit(&translator, ast);
+    tasm_translator_generate_bin(&translator);
+    
+    tasm_translator_destroy(&translator);
+
+
     tasm_parser_destroy(&parser);
 
     arena_destroy(&src_arena);
