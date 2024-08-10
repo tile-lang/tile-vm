@@ -38,7 +38,8 @@ bool is_operand_label_call(tasm_parser_t* parser);
 
 #include <math.h>
 #define STB_DS_IMPLEMENTATION
-#include <common/stb_ds.h>
+#include <stb_ds.h>
+
 
 tasm_parser_t tasm_parser_init(tasm_lexer_t* lexer) {
     tasm_parser_t parser = {
