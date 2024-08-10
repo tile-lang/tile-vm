@@ -11,4 +11,4 @@ tvm:
 
 tasm:
 	if not exist build mkdir build
-	$(CC) $(CFLAGS) ./src/tasm.c -I ./include -o ./build/tasm.exe
+	$(CC) $(CFLAGS) ./src/tasm.c -I ./include -I ./extern/stb/include -o ./build/tasm.exe
