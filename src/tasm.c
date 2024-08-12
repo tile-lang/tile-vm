@@ -1,4 +1,5 @@
 #include <tasm/tasm.h>
+#include <common/cmd_colors.h>
 
 arena_t src_arena;
 
@@ -23,14 +24,31 @@ char* read_file_content(const char* file_name) {
     return content;
 }
 
+bool tasm_usage(int argc) {
+    if (argc < 2) {
+        fprintf(stdout, CLR_RED"Invalid usage!"CLR_END "can not found input file.\n");
+        fprintf(stdout, "    tasm <file.tasm>\n");
+        return false;
+    }
+    if (argc >= 3) {
+        fprintf(stdout, CLR_YELLOW"Warning: "CLR_END "more than expected input\n");
+        fprintf(stdout, "    tasm <file.tasm>\n");
+    }
+    return true;
+}
+
 int main(int argc, char **argv) {
-    (void)(argc);
-    (void)(argv);
+    
+    if (!tasm_usage(argc)) {
+        return -1;
+    }
+
+    char* file_name = argv[1];
 
     ast_arena = arena_init(1024);
     src_arena = arena_init(1024);
 
-    char* content = read_file_content("factorial.tasm");
+    char* content = read_file_content(file_name);
 
     tasm_lexer_t lexer = tasm_lexer_init(
         content
