@@ -46,6 +46,7 @@ typedef enum {
     OP_JNZ,  // conditional jump
     OP_CALL,
     OP_RET,
+    /* casting */
     OP_CI2F,
     OP_CI2U,
     OP_CF2I,
@@ -111,9 +112,23 @@ void tvm_save_program_to_memory(tvm_t* vm, opcode_t* program) {
 }
 
 void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
-    UNUSED_VAR(vm);
-    UNUSED_VAR(file_path);
+    FILE* file = fopen(file_path, "rb");
+    if (!file) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+    
+    fseek(file,0L,SEEK_END);
+    long int byte_size = ftell(file);
+    fseek(file,0L,SEEK_SET);
+    size_t opcode_size = sizeof(vm->program[0]);
+
+    vm->program_size = byte_size/opcode_size;
+    fread(vm->program, opcode_size, vm->program_size, file);
+    
+    fclose(file);
 }
+
 
 void tvm_save_program_to_file(tvm_t* vm, const char* file_path) {
     UNUSED_VAR(vm);
