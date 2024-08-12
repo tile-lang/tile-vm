@@ -51,10 +51,22 @@ void* arena_alloc(arena_t* arena, u64_t size) {
 }
 
 void* arena_realloc(arena_t* arena, u64_t size) {
-    // TODO: implement this
-    (void)(arena);
-    (void)(size);
-    return NULL;
+    if (size <= arena->capacity) {
+         return &arena->memory[arena->size];
+    } else {
+        u8_t* new_memory = (u8_t*)realloc(arena->memory, size);
+        if (new_memory == NULL) {
+            printf("Reallocation failed!\n");
+            return NULL;
+        }
+        arena->memory = new_memory;
+        arena->capacity = size;
+        if (size < arena->size) {
+            //reducing the capacity effectively
+            arena->size = size;
+        }
+        return &arena->memory[arena->size];
+    }
 }
 
 void arena_reset(arena_t* arena) {
