@@ -72,15 +72,6 @@ void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
         parser->current_token = parser->next_token;
         parser->next_token = tasm_lexer_get_next_token(parser->lexer);
     }
-    // if ((parser->prev_token.type == TOKEN_NONE || parser->prev_token.type == TOKEN_ENDLINE) && 
-    //     parser->current_token.type == TOKEN_COMMENT) {
-    //     parser->current_token = parser->next_token;
-    //     parser->next_token = tasm_lexer_get_next_token(parser->lexer);
-    //     tasm_parser_eat(parser, TOKEN_ENDLINE);
-    // } else if (parser->current_token.type == TOKEN_COMMENT) {
-    //     parser->current_token = parser->next_token;
-    //     parser->next_token = tasm_lexer_get_next_token(parser->lexer);
-    // }
 }
 
 tasm_ast_t* tasm_parse_file(tasm_parser_t* parser) {
@@ -152,6 +143,8 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
         return tasm_parse_label_decl(parser);
     if (is_line_instruction(parser))
         return tasm_parse_instruction(parser);
+    if (is_line_proc(parser))
+        tasm_parser_eat(parser, 6400);
 
     if (parser->current_token.type == TOKEN_ID)
         tasm_parser_eat(parser, 3200);
