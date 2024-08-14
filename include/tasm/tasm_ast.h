@@ -14,17 +14,26 @@ typedef struct tasm_ast{
         AST_OP_DIV,
         AST_OP_MOD,
         AST_OP_DUP,
+        AST_OP_CLN,
+        AST_OP_SWAP,
         AST_OP_ADDF,
         AST_OP_SUBF,
         AST_OP_MULTF,
         AST_OP_DIVF,
-        AST_OP_CALL,
-        AST_OP_RET,
+        AST_OP_INC,
+        AST_OP_INCF,
+        AST_OP_DEC,
+        AST_OP_DECF,
         AST_OP_JMP,
         AST_OP_JNZ,
-        AST_OP_CSTF,
-        AST_OP_CSTI,
-        AST_OP_CSTU,
+        AST_OP_CALL,
+        AST_OP_RET,
+        AST_OP_CI2F,
+        AST_OP_CI2U,
+        AST_OP_CF2I,
+        AST_OP_CF2U,
+        AST_OP_CU2I,
+        AST_OP_CU2F,
         AST_OP_HALT,
 
         AST_NUMBER,
@@ -140,6 +149,18 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
         case AST_OP_DUP:
             printf("DUP\n");
             break;
+        case AST_OP_CLN:
+            printf("CLN %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
+            break;
+        case AST_OP_SWAP:
+            printf("SWAP %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
+            break;
         case AST_OP_ADDF:
             printf("ADDF\n");
             break;
@@ -152,14 +173,17 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
         case AST_OP_DIVF:
             printf("DIVF\n");
             break;
-        case AST_OP_CALL:
-            printf("CALL %s\n", node->inst.name);
-            if (node->inst.operand) {
-                tasm_ast_show(node->inst.operand, indent + 1);
-            }
+        case AST_OP_INC:
+            printf("INC\n");
             break;
-        case AST_OP_RET:
-            printf("RET\n");
+        case AST_OP_INCF:
+            printf("INCF\n");
+            break;
+        case AST_OP_DEC:
+            printf("DEC\n");
+            break;
+        case AST_OP_DECF:
+            printf("DECF\n");
             break;
         case AST_OP_JMP:
             printf("JMP %s\n", node->inst.name);
@@ -173,14 +197,32 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
                 tasm_ast_show(node->inst.operand, indent + 1);
             }
             break;
-        case AST_OP_CSTF:
-            printf("CSTF\n");
+        case AST_OP_CALL:
+            printf("CALL %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
             break;
-        case AST_OP_CSTI:
-            printf("CSTI\n");
+        case AST_OP_RET:
+            printf("RET\n");
             break;
-        case AST_OP_CSTU:
-            printf("CSTU\n");
+        case AST_OP_CI2F:
+            printf("CI2F\n");
+            break;
+        case AST_OP_CI2U:
+            printf("CI2U\n");
+            break;
+        case AST_OP_CF2I:
+            printf("CF2I\n");
+            break;
+        case AST_OP_CF2U:
+            printf("CF2U\n");
+            break;
+        case AST_OP_CU2I:
+            printf("CU2I\n");
+            break;
+        case AST_OP_CU2F:
+            printf("CU2F\n");
             break;
         case AST_OP_HALT:
             printf("HALT\n");

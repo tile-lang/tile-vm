@@ -2,6 +2,7 @@
 #define TRANSLATOR_H_
 
 #include <common/arena.h>
+#include <common/cmd_colors.h>
 #include <tasm/tasm_ast.h>
 #include <tvm/tvm.h>
 
@@ -34,7 +35,10 @@ typedef struct {
 
 tasm_translator_t tasm_translator_init();
 void tasm_translator_destroy(tasm_translator_t* translator);
+static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node);
+static void tasm_translate_proc_and_line(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node);
+static void tasm_translate_proc(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_resolve_labels(tasm_translator_t* translator, tasm_ast_t* node);
 static void program_push(tasm_translator_t* translator, opcode_t code);
 static size_t get_addr_from_label_decl_symbol(tasm_translator_t* translator, const char* name);
@@ -63,15 +67,8 @@ void tasm_translator_destroy(tasm_translator_t* translator) {
     (void)translator;
 }
 
-void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
+static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node) {
    switch (node->tag) {
-        case AST_NONE:
-            break;
-        case AST_FILE:
-            for (size_t i = 0; i < node->file.line_size; i++) {
-                tasm_translate_unit(translator, node->file.lines[i]);
-            }
-            break;
         case AST_OP_NOP:
             program_push(translator, (opcode_t){.type = OP_NOP});
             break;
@@ -80,6 +77,12 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
                 program_push(translator, (opcode_t)
                 {
                     .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_PUSH,
+                });
+            } else if (node->inst.operand->tag == AST_CHAR) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = (uint32_t)node->inst.operand->character.value[0],
                     .type = OP_PUSH,
                 });
             }
@@ -96,6 +99,52 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
             break;
         case AST_OP_DIV:
             program_push(translator, (opcode_t){.type = OP_DIV});
+            break;
+        case AST_OP_CLN:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_CLN,
+                });
+            }
+            else if (node->inst.operand->tag == AST_LABEL_CALL) {
+                tasm_translate_unit(translator, node->inst.operand);
+                const char* name = node->inst.operand->label_call.name;
+                size_t addr = get_addr_from_label_call_symbol(translator, name);
+                if (addr == -1) {
+                    fprintf(stderr, "There is no such a label called: %s\n", name);
+                    return;
+                }
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = addr,
+                    .type = OP_CLN,
+                });
+            }
+            break;
+        case AST_OP_SWAP:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_SWAP,
+                });
+            }
+            else if (node->inst.operand->tag == AST_LABEL_CALL) {
+                tasm_translate_unit(translator, node->inst.operand);
+                const char* name = node->inst.operand->label_call.name;
+                size_t addr = get_addr_from_label_call_symbol(translator, name);
+                if (addr == -1) {
+                    fprintf(stderr, "There is no such a label called: %s\n", name);
+                    return;
+                }
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = addr,
+                    .type = OP_SWAP,
+                });
+            }
             break;
         case AST_OP_MOD:
             program_push(translator, (opcode_t){.type = OP_MOD});
@@ -115,11 +164,17 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
         case AST_OP_DIVF:
             program_push(translator, (opcode_t){.type = OP_DIVF});
             break;
-        case AST_OP_CALL:
-            program_push(translator, (opcode_t){.type = OP_CALL});
+                case AST_OP_INC:
+            program_push(translator, (opcode_t){.type = OP_INC});
             break;
-        case AST_OP_RET:
-            program_push(translator, (opcode_t){.type = OP_RET});
+        case AST_OP_INCF:
+            program_push(translator, (opcode_t){.type = OP_INCF});
+            break;
+        case AST_OP_DEC:
+            program_push(translator, (opcode_t){.type = OP_DEC});
+            break;
+        case AST_OP_DECF:
+            program_push(translator, (opcode_t){.type = OP_DECF});
             break;
         case AST_OP_JMP:
             if (node->inst.operand->tag == AST_NUMBER) {
@@ -132,7 +187,7 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
             else if (node->inst.operand->tag == AST_LABEL_CALL) {
                 tasm_translate_unit(translator, node->inst.operand);
                 const char* name = node->inst.operand->label_call.name;
-                size_t addr = get_addr_from_label_call_symbol(translator, name);
+                int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
                     fprintf(stderr, "There is no such a label called: %s\n", name);
                     return;
@@ -145,14 +200,55 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
             }
             break;
         case AST_OP_JNZ:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_JNZ,
+                });
+            }
+            else if (node->inst.operand->tag == AST_LABEL_CALL) {
+                tasm_translate_unit(translator, node->inst.operand);
+                const char* name = node->inst.operand->label_call.name;
+                int addr = get_addr_from_label_call_symbol(translator, name);
+                if (addr == -1) {
+                    fprintf(stderr, "There is no such a label called: %s\n", name);
+                    return;
+                }
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = addr,
+                    .type = OP_JNZ,
+                });
+            }
             break;
-        case AST_OP_CSTF:
+        case AST_OP_CALL:
+            //FIXME: allow call to have a "proc label" as the operand!!!
+            program_push(translator, (opcode_t){.type = OP_CALL});
             break;
-        case AST_OP_CSTI:
+        case AST_OP_RET:
+            program_push(translator, (opcode_t){.type = OP_RET});
             break;
-        case AST_OP_CSTU:
+        case AST_OP_CI2F:
+            program_push(translator, (opcode_t){.type = OP_CI2F});
+            break;
+        case AST_OP_CI2U:
+            program_push(translator, (opcode_t){.type = OP_CI2U});
+            break;
+        case AST_OP_CF2I:
+            program_push(translator, (opcode_t){.type = OP_CF2I});
+            break;
+        case AST_OP_CF2U:
+            program_push(translator, (opcode_t){.type = OP_CF2U});
+            break;
+        case AST_OP_CU2I:
+            program_push(translator, (opcode_t){.type = OP_CU2I});
+            break;
+        case AST_OP_CU2F:
+            program_push(translator, (opcode_t){.type = OP_CU2F});
             break;
         case AST_OP_HALT:
+            program_push(translator, (opcode_t){.type = OP_HALT});
             break;
         case AST_NUMBER:
             break;
@@ -160,7 +256,7 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
             break;
         case AST_LABEL_CALL: {
             const char* name = node->label_call.name;
-            size_t addr = get_addr_from_label_decl_symbol(translator, name);
+            int addr = get_addr_from_label_decl_symbol(translator, name);
             printf("lbl cll addr: %d\n", addr);
             if (addr == -1) {
                 fprintf(stderr, "There is no label declared before called: %s\n", name);
@@ -172,9 +268,53 @@ void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node) {
         }
             break;
         case AST_PROC:
+            fprintf(stderr, CLR_RED"It is not possible to create proc inside another proc!"CLR_END);
             break;
         default:
+            fprintf(stderr, "");
             break;
+    }
+}
+
+static void tasm_translate_proc_and_line(tasm_translator_t *translator, tasm_ast_t *node) {
+    switch (node->tag)
+    {
+    case AST_PROC:
+        tasm_translate_proc(translator, node);
+        break;
+    default:
+        tasm_translate_line(translator, node);
+        break;
+    }
+}
+
+void tasm_translate_unit(tasm_translator_t *translator, tasm_ast_t *node) {
+    switch (node->tag)
+    {
+    case AST_NONE:
+        break;
+    case AST_FILE:
+        for (size_t i = 0; i < node->file.line_size; i++) {
+            tasm_translate_proc_and_line(translator, node->file.lines[i]);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+static void tasm_translate_proc(tasm_translator_t *translator, tasm_ast_t *node) {
+    switch (node->tag)
+    {
+    case AST_NONE:
+        break;
+    case AST_PROC:
+        for (size_t i = 0; i < node->proc.line_size; i++) {
+            tasm_translate_line(translator, node->proc.lines[i]);
+        }
+        break;
+    default:
+        break;
     }
 }
 
@@ -195,17 +335,25 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node) {
         case AST_OP_DIV:
         case AST_OP_MOD:
         case AST_OP_DUP:
+        case AST_OP_CLN:
         case AST_OP_ADDF:
         case AST_OP_SUBF:
         case AST_OP_MULTF:
         case AST_OP_DIVF:
-        case AST_OP_CALL:
-        case AST_OP_RET:
+        case AST_OP_INC:
+        case AST_OP_INCF:
+        case AST_OP_DEC:
+        case AST_OP_DECF:
         case AST_OP_JMP:
         case AST_OP_JNZ:
-        case AST_OP_CSTF:
-        case AST_OP_CSTI:
-        case AST_OP_CSTU:
+        case AST_OP_CALL:
+        case AST_OP_RET:
+        case AST_OP_CI2F:
+        case AST_OP_CI2U:
+        case AST_OP_CF2I:
+        case AST_OP_CF2U:
+        case AST_OP_CU2I:
+        case AST_OP_CU2F:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
             break;
@@ -220,6 +368,9 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node) {
             break;
         }
         case AST_PROC:
+            for (size_t i = 0; i < node->proc.line_size; i++) {
+                tasm_resolve_labels(translator, node->proc.lines[i]);
+            }
             break;
         default:
             break;
@@ -231,7 +382,6 @@ static void program_push(tasm_translator_t* translator, opcode_t code) {
 }
 
 static size_t get_addr_from_label_decl_symbol(tasm_translator_t* translator, const char* name) {
-    printf("gaflds: %d\n", translator->symbols.label_decls_size);
     for (size_t i = 0; i < translator->symbols.label_decls_size; i++) {
         if (strcmp(name, translator->symbols.label_decls[i].name) == 0) {
             return translator->symbols.label_decls[i].addr;
@@ -241,7 +391,6 @@ static size_t get_addr_from_label_decl_symbol(tasm_translator_t* translator, con
 }
 
 size_t get_addr_from_label_call_symbol(tasm_translator_t *translator, const char *name) {
-    printf("gaflcs: %d\n", translator->symbols.label_calls_size);
     for (size_t i = 0; i < translator->symbols.label_calls_size; i++) {
         if (strcmp(name, translator->symbols.label_calls[i].name) == 0) {
             return translator->symbols.label_calls[i].addr;

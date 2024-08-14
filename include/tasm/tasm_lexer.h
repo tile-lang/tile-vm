@@ -178,22 +178,30 @@ tasm_token_t tasm_lexer_collect_number(tasm_lexer_t* lexer) {
     return token;
 }
 
-const size_t _inst_strings_count = 20;
+const size_t _inst_strings_count = 29;
 
-const char*_inst_strings_lower[] = {
-    "nop", "push", "add", "sub",
-    "mult", "div", "mod", "dup",
+const char* _inst_strings_lower[] = {
+    "nop", "push", 
+    "add", "sub", "mult", "div", 
+    "mod", 
+    "dup", "cln", "swap",
     "addf", "subf", "multf", "divf",
-    "call", "ret",
-    "jmp", "jnz", "cstf", "csti", "cstu", "hlt"
+    "inc", "incf", "dec", "decf",
+    "jmp", "jnz", "call", "ret",
+    "ci2f", "ci2u", "cf2i", "cf2u", "cu2i", "cu2f",
+    "hlt"
 };
 
-const char*_inst_strings_upper[] = {
-    "NOP", "PUSH", "ADD", "SUB",
-    "MULT", "DIV", "MOD", "DUP",
+const char* _inst_strings_upper[] = {
+    "NOP", "PUSH", 
+    "ADD", "SUB", "MULT", "DIV", 
+    "MOD", 
+    "DUP", "CLN", "SWAP",
     "ADDF", "SUBF", "MULTF", "DIVF",
-    "CALL", "RET",
-    "JMP", "JNZ", "CSTF", "CSTI", "CSTU", "HLT"
+    "INC", "INCF", "DEC", "DECF",
+    "JMP", "JNZ", "CALL", "RET",
+    "CI2F", "CI2U", "CF2I", "CF2U", "CU2I", "CU2F",
+    "HLT"
 };
 
 bool is_id_op(token_type_t type, char* val) {
