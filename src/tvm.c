@@ -20,9 +20,8 @@ int main(int argc, char **argv) {
     UNUSED_VAR(argv);
     
     tvm_t vm = tvm_init();
-    tvm_load_program_from_memory(&vm, program, 15);
-    //const char *file_path = "out.bin";
-    //tvm_load_program_from_file(&vm, "out.bin");
+    //tvm_load_program_from_memory(&vm, program, 15);
+    tvm_load_program_from_file(&vm, "out.bin");
     tvm_run(&vm);
 
     return 0;

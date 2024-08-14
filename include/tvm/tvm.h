@@ -302,18 +302,26 @@
             vm->ip++;
             break;
         case OP_INC:
+            if (vm->sp < 1)
+                return EXCEPT_STACK_UNDERFLOW;
             vm->stack[vm->sp - 1].i32 += 1;
             vm->ip++;
             break;
         case OP_INCF:
+            if (vm->sp < 1)
+                return EXCEPT_STACK_UNDERFLOW;
             vm->stack[vm->sp - 1].f32 += 1;
             vm->ip++;
             break;
         case OP_DEC:
+            if (vm->sp < 1)
+                return EXCEPT_STACK_UNDERFLOW;
             vm->stack[vm->sp - 1].i32 -= 1;
             vm->ip++;
             break;
         case OP_DECF:
+            if (vm->sp < 1)
+                return EXCEPT_STACK_UNDERFLOW;
             vm->stack[vm->sp - 1].f32 -= 1;
             vm->ip++;
             break;
