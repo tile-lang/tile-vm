@@ -20,7 +20,7 @@ typedef struct arena_struct {
 arena_t arena_init(u64_t size);
 void* arena_alloc(arena_t* arena, u64_t size);
 void* arena_realloc(arena_t* arena, void* ptr, u64_t size);
-void arena_resize(arena_t* arena, u64_t size)
+void arena_resize(arena_t* arena, u64_t size);
 void arena_reset(arena_t* arena);
 void arena_destroy(arena_t* arena);
 
