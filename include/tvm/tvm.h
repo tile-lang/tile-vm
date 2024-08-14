@@ -32,6 +32,8 @@ typedef enum {
     OP_DIV,
     OP_MOD,
     OP_DUP,
+    OP_CLN,
+    OP_SWAP,
     OP_ADDF,
     OP_SUBF,
     OP_MULTF,
@@ -40,7 +42,6 @@ typedef enum {
     OP_INCF,
     OP_DEC,
     OP_DECF,
-
     /* branching */
     OP_JMP,  // unconditional jump
     OP_JNZ,  // conditional jump
@@ -243,6 +244,27 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp++;
         vm->ip++;
         break;
+    case OP_CLN:
+        if (inst.operand.i32 < 0 || inst.operand.i32 >= (int32_t)vm->sp)
+            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        else if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp] = vm->stack[inst.operand.i32];
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_SWAP:
+        if (inst.operand.i32 < 0 || inst.operand.i32 >= (int32_t)vm->sp)
+            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        else if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        object_t temp = vm->stack[vm->sp - 1];
+        vm->stack[vm->sp - 1] = vm->stack[inst.operand.i32];
+        vm->stack[inst.operand.i32] = temp;
+        vm->ip++;
+        break;
     case OP_ADDF:
         if (vm->sp < 2)
             return EXCEPT_STACK_UNDERFLOW;
@@ -280,18 +302,26 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->ip++;
         break;
     case OP_INC:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
         vm->stack[vm->sp - 1].i32 += 1;
         vm->ip++;
         break;
     case OP_INCF:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
         vm->stack[vm->sp - 1].f32 += 1;
         vm->ip++;
         break;
     case OP_DEC:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
         vm->stack[vm->sp - 1].i32 -= 1;
         vm->ip++;
         break;
     case OP_DECF:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
         vm->stack[vm->sp - 1].f32 -= 1;
         vm->ip++;
         break;
