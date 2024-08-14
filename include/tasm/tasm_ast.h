@@ -22,9 +22,12 @@ typedef struct tasm_ast{
         AST_OP_RET,
         AST_OP_JMP,
         AST_OP_JNZ,
-        AST_OP_CSTF,
-        AST_OP_CSTI,
-        AST_OP_CSTU,
+        AST_OP_CI2F,
+        AST_OP_CI2U,
+        AST_OP_CF2I,
+        AST_OP_CF2U,
+        AST_OP_CU2I,
+        AST_OP_CU2F,
         AST_OP_HALT,
 
         AST_NUMBER,
@@ -173,14 +176,23 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
                 tasm_ast_show(node->inst.operand, indent + 1);
             }
             break;
-        case AST_OP_CSTF:
-            printf("CSTF\n");
+        case AST_OP_CI2F:
+            printf("CI2F\n");
             break;
-        case AST_OP_CSTI:
-            printf("CSTI\n");
+        case AST_OP_CI2U:
+            printf("CI2U\n");
             break;
-        case AST_OP_CSTU:
-            printf("CSTU\n");
+        case AST_OP_CF2I:
+            printf("CF2I\n");
+            break;
+        case AST_OP_CF2U:
+            printf("CF2U\n");
+            break;
+        case AST_OP_CU2I:
+            printf("CU2I\n");
+            break;
+        case AST_OP_CU2F:
+            printf("CU2F\n");
             break;
         case AST_OP_HALT:
             printf("HALT\n");
