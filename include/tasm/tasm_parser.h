@@ -25,7 +25,9 @@ tasm_ast_t* tasm_parse_label_decl(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_proc(tasm_parser_t* parser);
 
 
-tasm_ast_t* tasm_parse_operand(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_number_operand(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser);
@@ -72,15 +74,6 @@ void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
         parser->current_token = parser->next_token;
         parser->next_token = tasm_lexer_get_next_token(parser->lexer);
     }
-    // if ((parser->prev_token.type == TOKEN_NONE || parser->prev_token.type == TOKEN_ENDLINE) && 
-    //     parser->current_token.type == TOKEN_COMMENT) {
-    //     parser->current_token = parser->next_token;
-    //     parser->next_token = tasm_lexer_get_next_token(parser->lexer);
-    //     tasm_parser_eat(parser, TOKEN_ENDLINE);
-    // } else if (parser->current_token.type == TOKEN_COMMENT) {
-    //     parser->current_token = parser->next_token;
-    //     parser->next_token = tasm_lexer_get_next_token(parser->lexer);
-    // }
 }
 
 tasm_ast_t* tasm_parse_file(tasm_parser_t* parser) {
@@ -152,6 +145,8 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
         return tasm_parse_label_decl(parser);
     if (is_line_instruction(parser))
         return tasm_parse_instruction(parser);
+    if (is_line_proc(parser))
+        tasm_parser_eat(parser, 6400);
 
     if (parser->current_token.type == TOKEN_ID)
         tasm_parser_eat(parser, 3200);
@@ -240,7 +235,7 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_NOP: tag = AST_OP_NOP;
         break;
     case TOKEN_OP_PUSH: tag = AST_OP_PUSH;
-        operand = tasm_parse_operand(parser);
+        operand = tasm_parse_push_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_ADD: tag = AST_OP_ADD;
@@ -256,11 +251,11 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_DUP: tag = AST_OP_DUP;
         break;
     case TOKEN_OP_CLN: tag = AST_OP_CLN;
-        operand = tasm_parse_operand(parser);
+        operand = tasm_parse_number_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_SWAP: tag = AST_OP_SWAP;
-        operand = tasm_parse_operand(parser);
+        operand = tasm_parse_number_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_ADDF: tag = AST_OP_ADDF;
@@ -280,15 +275,16 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_DECF: tag = AST_OP_DECF;
         break;
     case TOKEN_OP_JMP: tag = AST_OP_JMP;
-        operand = tasm_parse_operand(parser);
+        operand = tasm_parse_jmp_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_JNZ: tag = AST_OP_JNZ;
-        operand = tasm_parse_operand(parser);
+        operand = tasm_parse_jmp_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_CALL: tag = AST_OP_CALL;
-        operand = tasm_parse_operand(parser);
+        // operand = tasm_parse_operand(parser);
+        // TODO: implement this
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_RET: tag = AST_OP_RET;
@@ -325,16 +321,31 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     });
 }
 
-tasm_ast_t* tasm_parse_operand(tasm_parser_t *parser) {
+tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
     if (is_operand_number(parser))
         return tasm_parse_num_lit(parser);
-    if (is_operand_char(parser))
-        return tasm_parse_char_lit(parser);
+
+    return NULL;
+}
+
+tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser) {
+    if (is_operand_number(parser))
+        return tasm_parse_num_lit(parser);
     if (is_operand_label_call(parser))
         return tasm_parse_label_call(parser);
 
     return NULL;
 }
+
+tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser) {
+    if (is_operand_number(parser))
+        return tasm_parse_num_lit(parser);
+    if (is_operand_char(parser))
+        return tasm_parse_char_lit(parser);
+
+    return NULL;
+}
+
 
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t *parser) {
     const char* name = parser->current_token.value;
