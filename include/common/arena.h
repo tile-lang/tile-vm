@@ -19,7 +19,8 @@ typedef struct arena_struct {
 
 arena_t arena_init(u64_t size);
 void* arena_alloc(arena_t* arena, u64_t size);
-void* arena_realloc(arena_t* arena, u64_t size);
+void* arena_realloc(arena_t* arena, void* ptr, u64_t size);
+void arena_resize(arena_t* arena, u64_t size);
 void arena_reset(arena_t* arena);
 void arena_destroy(arena_t* arena);
 
@@ -50,11 +51,45 @@ void* arena_alloc(arena_t* arena, u64_t size) {
     return NULL;
 }
 
-void* arena_realloc(arena_t* arena, u64_t size) {
-    // TODO: implement this
-    (void)(arena);
-    (void)(size);
-    return NULL;
+void* arena_realloc(arena_t* arena, void* ptr, u64_t size) {
+    if (ptr == NULL) {
+        return arena_alloc(arena, size); // If ptr is NULL, just allocate new memory.
+    }
+    
+    u8_t* old_ptr = (u8_t*)ptr;
+    u64_t old_offset = old_ptr - arena->memory;
+    
+    if (old_offset + size <= arena->capacity) {
+        // If the requested size is within the current arena capacity, simply adjust size.
+        arena->size = old_offset + size;
+        return old_ptr;
+    }
+
+    // Otherwise, allocate new memory within the arena.
+    void* new_ptr = arena_alloc(arena, size);
+    if (new_ptr != NULL) {
+        memcpy(new_ptr, ptr, arena->size - old_offset);
+    } else {
+        printf("Reallocation failed: Not enough space in the arena.\n");
+    }
+    return new_ptr;
+}
+
+void arena_resize(arena_t* arena, u64_t size) {
+    if (size > arena->capacity) {
+        u8_t* new_memory = (u8_t*)malloc(size);
+        if (new_memory == NULL) {
+            printf("Resize failed!\n");
+            return;
+        }
+        memcpy(new_memory, arena->memory, arena->size);
+        free(arena->memory);
+        arena->memory = new_memory;
+        arena->capacity = size;
+    }
+    if (size < arena->size) {
+        arena->size = size;
+    }
 }
 
 void arena_reset(arena_t* arena) {
