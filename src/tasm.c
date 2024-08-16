@@ -70,7 +70,8 @@ int main(int argc, char **argv) {
 
     tasm_translator_t translator = tasm_translator_init();
     
-    tasm_resolve_labels(&translator, ast);
+    tasm_resolve_procs(&translator, ast);
+    tasm_resolve_labels(&translator, ast, NULL);
     // tasm_resolve_label_calls(&translator, ast);
     
     symbol_dump(&translator);

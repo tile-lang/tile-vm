@@ -27,6 +27,7 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t* parser);
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_label_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser);
@@ -283,8 +284,7 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_CALL: tag = AST_OP_CALL;
-        // operand = tasm_parse_operand(parser);
-        // TODO: implement this
+        operand = tasm_parse_label_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
     case TOKEN_OP_RET: tag = AST_OP_RET;
@@ -334,6 +334,12 @@ tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser) {
     if (is_operand_label_call(parser))
         return tasm_parse_label_call(parser);
 
+    return NULL;
+}
+
+tasm_ast_t* tasm_parse_label_operand(tasm_parser_t *parser) {
+    if (is_operand_label_call(parser))
+        return tasm_parse_label_call(parser);
     return NULL;
 }
 
