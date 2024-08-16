@@ -251,7 +251,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        vm->stack[vm->sp] = vm->stack[inst.operand.i32];
+        vm->stack[vm->sp] = vm->stack[vm->sp - inst.operand.i32 - 1];
         vm->sp++;
         vm->ip++;
         break;
@@ -261,8 +261,8 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         else if (vm->sp < 2)
             return EXCEPT_STACK_UNDERFLOW;
         object_t temp = vm->stack[vm->sp - 1];
-        vm->stack[vm->sp - 1] = vm->stack[inst.operand.i32];
-        vm->stack[inst.operand.i32] = temp;
+        vm->stack[vm->sp - 1] = vm->stack[vm->sp - inst.operand.i32 - 1];
+        vm->stack[vm->sp - inst.operand.i32 - 1] = temp;
         vm->ip++;
         break;
     case OP_ADDF:
