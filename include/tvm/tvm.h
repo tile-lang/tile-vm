@@ -18,6 +18,7 @@ typedef enum {
     EXCEPT_STACK_OVERFLOW,
     EXCEPT_INVALID_INSTRUCTION,
     EXCEPT_INVALID_INSTRUCTION_ACCESS,
+    EXCEPT_INVALID_STACK_ACCESS,
     EXCEPT_DIVISION_BY_ZERO,
 } exception_t;
 
@@ -44,6 +45,7 @@ typedef enum {
     OP_DECF,
     /* branching */
     OP_JMP,  // unconditional jump
+    OP_JZ,   // conditional jump
     OP_JNZ,  // conditional jump
     OP_CALL,
     OP_RET,
@@ -150,6 +152,8 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_INSTRUCTION";
     case EXCEPT_INVALID_INSTRUCTION_ACCESS:
         return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
+    case EXCEPT_INVALID_STACK_ACCESS:
+        return "EXCEPT_INVALID_STACK_ACCESS";
     case EXCEPT_DIVISION_BY_ZERO:
         return "EXCEPT_DIVISION_BY_ZERO";
         
@@ -245,24 +249,24 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->ip++;
         break;
     case OP_CLN:
-        if (inst.operand.i32 < 0 || inst.operand.i32 >= (int32_t)vm->sp)
-            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        if (inst.operand.ui32 >= (uint32_t)vm->sp)
+            return EXCEPT_INVALID_STACK_ACCESS;
         else if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        vm->stack[vm->sp] = vm->stack[vm->sp - inst.operand.i32 - 1];
+        vm->stack[vm->sp] = vm->stack[vm->sp - inst.operand.ui32 - 1];
         vm->sp++;
         vm->ip++;
         break;
     case OP_SWAP:
-        if (inst.operand.i32 < 0 || inst.operand.i32 >= (int32_t)vm->sp)
-            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        if (inst.operand.ui32 >= (uint32_t)vm->sp)
+            return EXCEPT_INVALID_STACK_ACCESS;
         else if (vm->sp < 2)
             return EXCEPT_STACK_UNDERFLOW;
         object_t temp = vm->stack[vm->sp - 1];
-        vm->stack[vm->sp - 1] = vm->stack[vm->sp - inst.operand.i32 - 1];
-        vm->stack[vm->sp - inst.operand.i32 - 1] = temp;
+        vm->stack[vm->sp - 1] = vm->stack[vm->sp - inst.operand.ui32 - 1];
+        vm->stack[vm->sp - inst.operand.ui32 - 1] = temp;
         vm->ip++;
         break;
     case OP_ADDF:
@@ -326,28 +330,38 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->ip++;
         break;
     case OP_JMP:
-        if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+        if (inst.operand.ui32 >= vm->program_size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
-        vm->ip = inst.operand.i32;
+        vm->ip = inst.operand.ui32;
         // vm->ip++; you can delete this comment
+        break;
+    case OP_JZ:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (inst.operand.ui32 >= vm->program_size)
+            return EXCEPT_INVALID_INSTRUCTION_ACCESS;
+        if (vm->stack[vm->sp - 1].ui32 == 0)
+            vm->ip = inst.operand.ui32;
+        else 
+            vm->ip++;
         break;
     case OP_JNZ:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+        else if (inst.operand.ui32 >= vm->program_size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
-        if (vm->stack[vm->sp - 1].i32 != 0)
-            vm->ip = inst.operand.i32;
+        if (vm->stack[vm->sp - 1].ui32 != 0)
+            vm->ip = inst.operand.ui32;
         else 
             vm->ip++;
         break;
     case OP_CALL:
         if (vm->rsp >= RETURN_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        else if (inst.operand.i32 < 0 || inst.operand.ui32 >= vm->program_size)
+        else if (inst.operand.ui32 >= vm->program_size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
         vm->return_stack[vm->rsp++] = vm->ip + 1;
-        vm->ip = inst.operand.i32;
+        vm->ip = inst.operand.ui32;
         break; 
     case OP_RET:
         if (vm->rsp < 1)

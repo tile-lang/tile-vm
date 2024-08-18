@@ -30,6 +30,7 @@ typedef enum {
     TOKEN_OP_DEC,
     TOKEN_OP_DECF,
     TOKEN_OP_JMP,
+    TOKEN_OP_JZ,
     TOKEN_OP_JNZ,
     TOKEN_OP_CALL,
     TOKEN_OP_RET,
