@@ -178,7 +178,7 @@ tasm_token_t tasm_lexer_collect_number(tasm_lexer_t* lexer) {
     return token;
 }
 
-const size_t _inst_strings_count = 29;
+const size_t _inst_strings_count = 30;
 
 const char* _inst_strings_lower[] = {
     "nop", "push", 
@@ -187,7 +187,7 @@ const char* _inst_strings_lower[] = {
     "dup", "cln", "swap",
     "addf", "subf", "multf", "divf",
     "inc", "incf", "dec", "decf",
-    "jmp", "jnz", "call", "ret",
+    "jmp","jz" ,"jnz", "call", "ret",
     "ci2f", "ci2u", "cf2i", "cf2u", "cu2i", "cu2f",
     "hlt"
 };
@@ -199,7 +199,7 @@ const char* _inst_strings_upper[] = {
     "DUP", "CLN", "SWAP",
     "ADDF", "SUBF", "MULTF", "DIVF",
     "INC", "INCF", "DEC", "DECF",
-    "JMP", "JNZ", "CALL", "RET",
+    "JMP","JZ" ,"JNZ", "CALL", "RET",
     "CI2F", "CI2U", "CF2I", "CF2U", "CU2I", "CU2F",
     "HLT"
 };

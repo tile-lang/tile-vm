@@ -280,6 +280,10 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         operand = tasm_parse_jmp_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);
         break;
+    case TOKEN_OP_JZ: tag = AST_OP_JZ;
+        operand = tasm_parse_jmp_operand(parser);
+        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        break;
     case TOKEN_OP_JNZ: tag = AST_OP_JNZ;
         operand = tasm_parse_jmp_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, 1400);

@@ -25,6 +25,7 @@ typedef struct tasm_ast{
         AST_OP_DEC,
         AST_OP_DECF,
         AST_OP_JMP,
+        AST_OP_JZ,
         AST_OP_JNZ,
         AST_OP_CALL,
         AST_OP_RET,
@@ -187,6 +188,12 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             break;
         case AST_OP_JMP:
             printf("JMP %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
+            break;
+        case AST_OP_JZ:
+            printf("JZ %s\n", node->inst.name);
             if (node->inst.operand) {
                 tasm_ast_show(node->inst.operand, indent + 1);
             }
