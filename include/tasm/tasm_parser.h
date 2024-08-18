@@ -3,6 +3,7 @@
 
 #include <tasm/tasm_lexer.h>
 #include <tasm/tasm_ast.h>
+#include <common/cmd_colors.h>
 
 typedef struct {
     tasm_token_t current_token;
@@ -61,7 +62,7 @@ void tasm_parser_destroy(tasm_parser_t* parser) {
 void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
     if (parser->current_token.type != token_type) {
         printf(
-        "file:%d:%d:Unexpected token: `%s`, with type `%d`\nExpected type `%d`\n",
+        "file:%d:%d:"CLR_RED"Unexpected token:"CLR_END"`%s`, with type `%d`\nExpected type `%d`\n",
         parser->lexer->loc.row,
         parser->lexer->loc.col,
         parser->current_token.value,
