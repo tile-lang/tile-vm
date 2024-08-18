@@ -193,7 +193,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 });
             }
             else if (node->inst.operand->tag == AST_LABEL_CALL) {
-                tasm_translate_line(translator, node->inst.operand, NULL);
+                tasm_translate_line(translator, node->inst.operand, prefix, false);
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
