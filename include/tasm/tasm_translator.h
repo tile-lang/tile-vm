@@ -341,6 +341,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_MOD:
         case AST_OP_DUP:
         case AST_OP_CLN:
+        case AST_OP_SWAP:
         case AST_OP_ADDF:
         case AST_OP_SUBF:
         case AST_OP_MULTF:
@@ -410,6 +411,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_MOD:
         case AST_OP_DUP:
         case AST_OP_CLN:
+        case AST_OP_SWAP:
         case AST_OP_ADDF:
         case AST_OP_SUBF:
         case AST_OP_MULTF:
