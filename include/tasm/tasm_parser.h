@@ -9,7 +9,6 @@ typedef struct {
     tasm_token_t prev_token;
     tasm_token_t next_token;
     tasm_lexer_t* lexer;
-    const char* current_proc_name; // Proc name tracking for proc's labels
 } tasm_parser_t;
 
 tasm_parser_t tasm_parser_init(tasm_lexer_t* lexer);
@@ -176,7 +175,6 @@ tasm_ast_t* tasm_parse_label_decl(tasm_parser_t* parser) {
 tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
     tasm_parser_eat(parser, TOKEN_PROC);
     const char* proc_name = parser->current_token.value;
-    parser->current_proc_name = proc_name;  // Seting the current procedure name
     tasm_parser_eat(parser, TOKEN_ID);
     
     tasm_ast_t** lines = NULL;
@@ -188,8 +186,6 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
             tasm_parser_eat(parser, TOKEN_ENDP);
     }
     tasm_parser_eat(parser, TOKEN_ENDP);
-    parser->current_proc_name = NULL;  // Clearing the current procedure name after parsing
-
     tasm_ast_t* ast_proc = tasm_ast_create((tasm_ast_t) {
         .tag = AST_PROC,
         .proc.name = proc_name,
@@ -206,7 +202,6 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
 
     return ast_proc;
 }
-
 
 bool is_operand_number(tasm_parser_t* parser) {
     if (parser->current_token.type == TOKEN_NUMBER)
@@ -310,17 +305,6 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     default:
         break;
-    }
-
-    // Check procedure name to label call if within a procedure
-    if (parser->current_proc_name != NULL && operand != NULL && operand->tag == AST_LABEL_CALL) {
-        size_t proc_name_len = strlen(parser->current_proc_name);
-        size_t label_name_len = strlen(operand->label_call.name);
-        char* full_label_name = malloc(proc_name_len + label_name_len); // maybe + 1 because of null terminator
-        strcpy(full_label_name, parser->current_proc_name);
-        strcat(full_label_name, "");
-        strcat(full_label_name, operand->label_call.name);
-        operand->label_call.name = full_label_name;
     }
 
     if (parser->current_token.type == TOKEN_COMMENT)
