@@ -6,10 +6,11 @@ opcode_t program[] = {
     {.type = OP_PUSH, .operand.i32 = 4},
     {.type = OP_PUSH, .operand.ui32 = 2},
     {.type = OP_PUSH, .operand.f32 = 3.4},
+    {.type = OP_ADD},
     {.type = OP_PUSH, .operand.f32 = 7.4},
     {.type = OP_PUSH, .operand.i32 = 6},
     {.type = OP_PUSH, .operand.f32 = 8.4},
-    {.type = OP_CLN, .operand.i32 = 12},
+    {.type = OP_SWAP, .operand.i32 = 4},
     {.type = OP_HALT}               
 };
 
