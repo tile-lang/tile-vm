@@ -43,7 +43,7 @@ typedef struct {
 
 tasm_translator_t tasm_translator_init();
 void tasm_translator_destroy(tasm_translator_t* translator);
-static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, tasm_ast_t* parent);
+static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, const char* prefix, bool is_call);
 static void tasm_translate_proc_and_line(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_unit(tasm_translator_t* translator, tasm_ast_t* node);
 static void tasm_translate_proc(tasm_translator_t* translator, tasm_ast_t* node);
@@ -80,8 +80,8 @@ void tasm_translator_destroy(tasm_translator_t* translator) {
     arena_destroy(&translator->cstr_arena);
 }
 
-static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, tasm_ast_t* parent) {
-   switch (node->tag) {
+static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, const char* prefix, bool is_call) {
+    switch (node->tag) {
         case AST_OP_NOP:
             program_push(translator, (opcode_t){.type = OP_NOP});
             break;
@@ -170,7 +170,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 });
             }
             else if (node->inst.operand->tag == AST_LABEL_CALL) {
-                tasm_translate_line(translator, node->inst.operand, NULL);
+                tasm_translate_line(translator, node->inst.operand, prefix, false);
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
@@ -193,7 +193,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 });
             }
             else if (node->inst.operand->tag == AST_LABEL_CALL) {
-                tasm_translate_line(translator, node->inst.operand, NULL);
+                tasm_translate_line(translator, node->inst.operand, prefix, false);
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
@@ -209,9 +209,9 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             break;
         case AST_OP_CALL:
             if (node->inst.operand->tag == AST_LABEL_CALL) {
-                tasm_translate_line(translator, node->inst.operand, node);
+                tasm_translate_line(translator, node->inst.operand, NULL, true);
                 const char* name = node->inst.operand->label_call.name;
-                int addr = get_addr_from_label_call_symbol(translator, name);
+                int addr = get_addr_from_proc_decl_symbol(translator, name);
                 if (addr == -1) {
                     fprintf(stderr, "There is no such a label called: %s\n", name);
                     return;
@@ -252,14 +252,24 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_CHAR:
             break;
         case AST_LABEL_CALL: {
-            const char* name = node->label_call.name;
+            char* name = NULL;
             int addr;
-            if (parent == NULL)
+            if (prefix != NULL) {
+                size_t size2 = strlen(prefix);
+                size_t size1 = strlen(node->label_call.name);
+                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
+                strcpy(name, prefix);
+                strcat(name, "$");
+                strcat(name, node->label_call.name);
+                node->label_call.name = name;
                 addr = get_addr_from_label_decl_symbol(translator, name);
-            else {
-                printf(CLR_BLUE"debug %d\n"CLR_END, parent->tag);
-                // FIXME: if there is a label call inside a proc implement addition of prefix of the proc to the name
-                addr = get_addr_from_proc_decl_symbol(translator, name);
+                printf(CLR_BLUE"debug %s\n"CLR_END, prefix);
+            } else {
+                name = node->label_call.name;
+                if (is_call)
+                    addr = get_addr_from_proc_decl_symbol(translator, name);
+                else
+                    addr = get_addr_from_label_decl_symbol(translator, name);
             }
 
             printf("lbl cll addr: %d\n", addr);
@@ -288,7 +298,7 @@ static void tasm_translate_proc_and_line(tasm_translator_t *translator, tasm_ast
         tasm_translate_proc(translator, node);
         break;
     default:
-        tasm_translate_line(translator, node, NULL);
+        tasm_translate_line(translator, node, NULL, false);
         break;
     }
 }
@@ -315,7 +325,7 @@ static void tasm_translate_proc(tasm_translator_t *translator, tasm_ast_t *node)
         break;
     case AST_PROC:
         for (size_t i = 0; i < node->proc.line_size; i++) {
-            tasm_translate_line(translator, node->proc.lines[i], node);
+            tasm_translate_line(translator, node->proc.lines[i], node->proc.name, false);
         }
         break;
     default:
@@ -370,8 +380,9 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_decl.name);
-                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 1);
+                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
+                strcat(name, "$");
                 strcat(name, node->label_decl.name);
             } else {
                 name = node->label_decl.name;
