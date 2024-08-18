@@ -94,7 +94,7 @@ void tasm_lexer_skip_line(tasm_lexer_t* lexer) {
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
     tasm_lexer_skip_whitespace(lexer);
 
-    if (isalpha(lexer->current_char))
+    if (isalpha(lexer->current_char) || lexer->current_char == '_')
         return tasm_lexer_collect_id(lexer);
     if (isdigit(lexer->current_char))
         return tasm_lexer_collect_number(lexer);
@@ -139,7 +139,7 @@ tasm_token_t lexer_collect_one_chars(tasm_lexer_t *lexer) {
 tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
     size_t len = 0;
     char temp_val[128];
-    while (isalnum(lexer->current_char)) {
+    while (isalnum(lexer->current_char) || lexer->current_char == '_') {
         temp_val[len] = lexer->current_char;
         len++;
         tasm_lexer_advance(lexer);
