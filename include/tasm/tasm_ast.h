@@ -75,6 +75,11 @@ typedef struct tasm_ast{
                 unsigned int u32;
                 int i32;
             } value;
+        enum {
+                NUM_INTEGER,
+                NUM_FLOAT,
+                NUM_HEX
+            } type; //track the type of number
         } number;
 
         struct ast_proc {
