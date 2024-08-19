@@ -43,7 +43,7 @@ bool is_operand_label_call(tasm_parser_t* parser);
 #include <math.h>
 #define STB_DS_IMPLEMENTATION
 #include <stb_ds.h>
-
+#include <stdint.h>
 
 tasm_parser_t tasm_parser_init(tasm_lexer_t* lexer) {
     tasm_parser_t parser = {
@@ -205,7 +205,13 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
 }
 
 bool is_operand_number(tasm_parser_t* parser) {
-    if (parser->current_token.type == TOKEN_NUMBER)
+    if (parser->current_token.type == TOKEN_DECIMAL_NUMBER || parser->current_token.type == TOKEN_FLOAT_NUMBER || parser->current_token.type == TOKEN_HEX_NUMBER ||parser->current_token.type == TOKEN_BINARY_NUMBER)
+        return true;
+    return false;
+}
+
+bool is_operand_int(tasm_parser_t* parser) {
+    if (parser->current_token.type == TOKEN_DECIMAL_NUMBER || parser->current_token.type == TOKEN_HEX_NUMBER)
         return true;
     return false;
 }
@@ -327,14 +333,17 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
 }
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
-    if (is_operand_number(parser))
+    if (parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
+        parser->current_token.type == TOKEN_FLOAT_NUMBER ||
+        parser->current_token.type == TOKEN_HEX_NUMBER ||
+        parser->current_token.type == TOKEN_BINARY_NUMBER) {
         return tasm_parse_num_lit(parser);
-
+    }
     return NULL;
 }
 
 tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser) {
-    if (is_operand_number(parser))
+    if (is_operand_int(parser))
         return tasm_parse_num_lit(parser);
     if (is_operand_label_call(parser))
         return tasm_parse_label_call(parser);
@@ -369,11 +378,40 @@ tasm_ast_t* tasm_parse_label_call(tasm_parser_t *parser) {
 
 tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser) {
     const char* text_val = parser->current_token.value;
-    tasm_parser_eat(parser, TOKEN_NUMBER);
+    token_type_t type = parser->current_token.type;
+    uint32_t value;
+    switch (type)
+    {
+    case TOKEN_DECIMAL_NUMBER: {
+        int val = atoi(text_val);
+        value = *(uint32_t*)&val;
+        break;
+    }
+    case TOKEN_FLOAT_NUMBER: {
+        float val = atof(text_val);
+        value = *(uint32_t*)&val;
+        break;
+    }
+    case TOKEN_HEX_NUMBER: {
+        int val = strtol(text_val, NULL, 16);
+        value = *(uint32_t*)&val;
+        break;
+    }
+    case TOKEN_BINARY_NUMBER: {
+        int val = strtol(text_val, NULL, 2);
+        value = *(uint32_t*)&val;
+        break;
+    }
+    
+    default:
+        tasm_parser_eat(parser, 9600);
+        break;
+    }
+    tasm_parser_eat(parser, type);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_NUMBER,
         .number.text_value = text_val,
-        .number.value.u32 = atoi(text_val),
+        .number.value.u32 = value,
         // FIXME: find a way to support for floating or hex vals
     });
 }

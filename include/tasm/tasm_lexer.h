@@ -37,8 +37,12 @@ tasm_token_t lexer_collect_one_chars(tasm_lexer_t* lexer);
 
 tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer);
 tasm_token_t tasm_lexer_collect_number(tasm_lexer_t *lexer);
+tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer);
+tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer);
 
 bool is_id_op(token_type_t type, char* val);
+bool isbinprefix(char first, char second);
+bool ishexprefix(char first, char second);
 
 #ifdef TASM_LEXER_IMPLEMENTATION
 
@@ -96,16 +100,15 @@ tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
 
     if (isalpha(lexer->current_char) || lexer->current_char == '_')
         return tasm_lexer_collect_id(lexer);
+    if (isbinprefix(lexer->current_char, lexer->next_char))
+        return tasm_lexer_collect_binary_number(lexer);
+    if (ishexprefix(lexer->current_char, lexer->next_char))
+        return tasm_lexer_collect_hex_number(lexer);
     if (isdigit(lexer->current_char))
         return tasm_lexer_collect_number(lexer);
 
     return lexer_collect_one_chars(lexer);
-    // if (r.type == TOKEN_NONE) {
-    //     fprintf(stderr, "file:%d:%d: Unknown token type!\n", lexer->loc.row, lexer->loc.col);
-    //     // exit(-1);
-    // }
 
-    // return r;
 }
 
 tasm_token_t lexer_collect_one_chars(tasm_lexer_t *lexer) {
@@ -162,10 +165,47 @@ tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
     return token;
 }
 
-tasm_token_t tasm_lexer_collect_number(tasm_lexer_t* lexer) {
+tasm_token_t tasm_lexer_collect_number(tasm_lexer_t *lexer) {
     size_t len = 0;
     char temp_val[128];
-    while ((isdigit(lexer->current_char))) {
+    token_type_t type = TOKEN_FLOAT_NUMBER;
+    
+    while (isdigit(lexer->current_char)) {
+        temp_val[len] = lexer->current_char;
+        len++;
+        tasm_lexer_advance(lexer);
+    }
+
+    if (lexer->current_char == '.') {
+        temp_val[len] = lexer->current_char;
+        len++;
+        tasm_lexer_advance(lexer);
+
+        while (isdigit(lexer->current_char)) {
+            temp_val[len] = lexer->current_char;
+            len++;
+            tasm_lexer_advance(lexer);
+        }
+    
+    }
+    else {
+        type = TOKEN_DECIMAL_NUMBER;
+    }
+
+    temp_val[len] = '\0';
+    len++;
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
+    memmove(val, temp_val, len);
+    tasm_token_t token = tasm_token_create(type, val);
+    return token;
+}
+
+tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer) {
+    size_t len = 0;
+    char temp_val[128];
+    tasm_lexer_advance(lexer);
+    tasm_lexer_advance(lexer);
+    while ((isxdigit(lexer->current_char))) {
         temp_val[len] = lexer->current_char;
         len++;
         tasm_lexer_advance(lexer);
@@ -174,7 +214,25 @@ tasm_token_t tasm_lexer_collect_number(tasm_lexer_t* lexer) {
     len++;
     char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
-    tasm_token_t token = tasm_token_create(TOKEN_NUMBER, val);
+    tasm_token_t token = tasm_token_create(TOKEN_HEX_NUMBER, val);
+    return token;
+}
+
+tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
+    size_t len = 0;
+    char temp_val[128];
+    tasm_lexer_advance(lexer);
+    tasm_lexer_advance(lexer);
+    while (lexer->current_char == '0' || lexer->current_char == '1' ) {
+        temp_val[len] = lexer->current_char;
+        len++;
+        tasm_lexer_advance(lexer);
+    }
+    temp_val[len] = '\0';
+    len++;
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
+    memmove(val, temp_val, len);
+    tasm_token_t token = tasm_token_create(TOKEN_BINARY_NUMBER, val);
     return token;
 }
 
@@ -213,6 +271,18 @@ bool is_id_op(token_type_t type, char* val) {
     ) == 0) {
         return true;
     }
+    return false;
+}
+
+bool isbinprefix(char first, char second) {
+    if (first == '0' && (second == 'b' || second == 'B'))
+        return true;
+    return false;
+}
+
+bool ishexprefix(char first, char second) {
+    if (first == '0' && (second == 'x' || second == 'X'))
+        return true;
     return false;
 }
 
