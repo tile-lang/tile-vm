@@ -27,6 +27,7 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t* parser);
 
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_int_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser);
@@ -259,12 +260,12 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_DUP: tag = AST_OP_DUP;
         break;
     case TOKEN_OP_CLN: tag = AST_OP_CLN;
-        operand = tasm_parse_number_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_eat(parser, 2000);
         break;
     case TOKEN_OP_SWAP: tag = AST_OP_SWAP;
-        operand = tasm_parse_number_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_eat(parser, 2000);
         break;
     case TOKEN_OP_ADDF: tag = AST_OP_ADDF;
         break;
@@ -339,6 +340,12 @@ tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
         parser->current_token.type == TOKEN_BINARY_NUMBER) {
         return tasm_parse_num_lit(parser);
     }
+    return NULL;
+}
+
+tasm_ast_t* tasm_parse_int_operand(tasm_parser_t *parser) {
+    if (is_operand_int(parser))
+        return tasm_parse_num_lit(parser);
     return NULL;
 }
 
