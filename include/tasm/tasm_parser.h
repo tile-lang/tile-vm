@@ -63,7 +63,8 @@ void tasm_parser_destroy(tasm_parser_t* parser) {
 void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
     if (parser->current_token.type != token_type) {
         printf(
-        "file:%d:%d:"CLR_RED"Unexpected token:"CLR_END"`%s`, with type `%d`\nExpected type `%d`\n",
+        "%s:%d:%d:"CLR_RED"Unexpected token:"CLR_END"`%s`, with type `%d`\nExpected type `%d`\n",
+        parser->lexer->loc.file_name,
         parser->lexer->loc.row,
         parser->lexer->loc.col,
         parser->current_token.value,
@@ -89,6 +90,7 @@ tasm_ast_t* tasm_parse_file(tasm_parser_t* parser) {
     }
     tasm_ast_t* ast_file = tasm_ast_create((tasm_ast_t) {
         .tag = AST_FILE,
+        .loc = parser->lexer->loc,
         .file.lines = lines,
         .file.line_size = arrlen(lines),
     });
@@ -166,10 +168,12 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
 
 tasm_ast_t* tasm_parse_label_decl(tasm_parser_t* parser) {
     const char* label_name = parser->current_token.value;
+    const loc_t loc = parser->lexer->loc;
     tasm_parser_eat(parser, TOKEN_ID);
     tasm_parser_eat(parser, TOKEN_COLON);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_LABEL_DECL,
+        .loc = loc,
         .label_decl.name = label_name,
     });
 }
@@ -177,6 +181,7 @@ tasm_ast_t* tasm_parse_label_decl(tasm_parser_t* parser) {
 tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
     tasm_parser_eat(parser, TOKEN_PROC);
     const char* proc_name = parser->current_token.value;
+    const loc_t loc = parser->lexer->loc;
     tasm_parser_eat(parser, TOKEN_ID);
     
     tasm_ast_t** lines = NULL;
@@ -190,6 +195,7 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
     tasm_parser_eat(parser, TOKEN_ENDP);
     tasm_ast_t* ast_proc = tasm_ast_create((tasm_ast_t) {
         .tag = AST_PROC,
+        .loc = loc,
         .proc.name = proc_name,
         .proc.lines = lines,
         .proc.line_size = arrlen(lines),
@@ -233,11 +239,9 @@ bool is_operand_label_call(tasm_parser_t* parser) {
 tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     const char* name = parser->current_token.value;
     int type = parser->current_token.type;
+    const loc_t loc = parser->lexer->loc;
     tasm_parser_eat(parser, parser->current_token.type);
-    
-    // TODO: forbid user to use only labels on jump
-    // and decide on the way other operands passed to which op code
-    
+        
     tasm_ast_t* operand = NULL;
     int tag;
     switch (type) {
@@ -328,6 +332,7 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
 
     return tasm_ast_create((tasm_ast_t) {
         .tag = tag,
+        .loc = loc,
         .inst.name = name,
         .inst.operand = operand,
     });
@@ -376,9 +381,11 @@ tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser) {
 
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t *parser) {
     const char* name = parser->current_token.value;
+    const loc_t loc = parser->lexer->loc;
     tasm_parser_eat(parser, TOKEN_ID);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_LABEL_CALL,
+        .loc = loc,
         .label_call.name = name,
     });
 }
@@ -417,6 +424,7 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser) {
     tasm_parser_eat(parser, type);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_NUMBER,
+        .loc = parser->lexer->loc,
         .number.text_value = text_val,
         .number.value.u32 = value,
         // FIXME: find a way to support for floating or hex vals
@@ -430,6 +438,7 @@ tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser) {
     tasm_parser_eat(parser, TOKEN_APOST);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_CHAR,
+        .loc = parser->lexer->loc,
         .character.value = val,
     });
 }
