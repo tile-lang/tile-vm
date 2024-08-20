@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
     char* content = read_file_content(file_name);
 
     tasm_lexer_t lexer = tasm_lexer_init(
-        content
+        content,
+        file_name
     );
 
     // tasm_token_t t = tasm_token_create(TOKEN_NONE, NULL);
@@ -65,7 +66,7 @@ int main(int argc, char **argv) {
     tasm_parser_t parser = tasm_parser_init(&lexer);
 
     tasm_ast_t* ast = tasm_parse_file(&parser);
-    tasm_ast_show(ast, 0);
+    // tasm_ast_show(ast, 0);
 
 
     tasm_translator_t translator = tasm_translator_init();
@@ -74,20 +75,21 @@ int main(int argc, char **argv) {
     tasm_resolve_labels(&translator, ast, NULL);
     // tasm_resolve_label_calls(&translator, ast);
     
-    symbol_dump(&translator);
+    // symbol_dump(&translator);
 
     tasm_translate_unit(&translator, ast);
-    tasm_translator_generate_bin(&translator);
+    if (!is_err(&translator))
+        tasm_translator_generate_bin(&translator);
     
     tasm_translator_destroy(&translator);
 
 
-
-
     tasm_parser_destroy(&parser);
 
-    arena_destroy(&src_arena);
+    tasm_ast_destroy(ast);
+
     arena_destroy(&ast_arena);
+    arena_destroy(&src_arena);
 
 
     return 0;

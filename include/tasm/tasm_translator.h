@@ -10,7 +10,6 @@
 #define SYMBOL_LABEL_CALL_CAPACITY 512
 #define SYMBOL_LABEL_DECL_CAPACITY 512
 #define SYMBOL_PROC_DECL_CAPACITY 512
-#define SYMBOL_ARENA_CAPACITY 2048
 
 typedef struct {
     struct {
@@ -31,6 +30,7 @@ typedef struct {
     size_t proc_decls_size;
     size_t proc_address_pointer;
 
+    bool err;
 
 } symbol_table_t;
 
@@ -55,6 +55,7 @@ static size_t get_addr_from_label_call_symbol(tasm_translator_t* translator, con
 static size_t get_addr_from_proc_decl_symbol(tasm_translator_t* translator, const char* name);
 void tasm_translator_generate_bin(tasm_translator_t* translator);
 void symbol_dump(tasm_translator_t* translator);
+bool is_err(tasm_translator_t* translator);
 
 
 #ifdef TASM_TRANSLATOR_IMPLEMENTATION
@@ -70,6 +71,7 @@ tasm_translator_t tasm_translator_init() {
             .proc_decls = {0},
             .proc_decls_size = 0,
             .label_address_pointer = 0,
+            .err = false,
         },
         .program_size = 0,
         .cstr_arena = arena_init(1024),
@@ -174,7 +176,6 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
-                    fprintf(stderr, "There is no such a label called: %s\n", name);
                     return;
                 }
                 program_push(translator, (opcode_t)
@@ -197,7 +198,6 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
-                    fprintf(stderr, "There is no such a label called: %s\n", name);
                     return;
                 }
                 program_push(translator, (opcode_t)
@@ -220,7 +220,6 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_label_call_symbol(translator, name);
                 if (addr == -1) {
-                    fprintf(stderr, "There is no such a label called: %s\n", name);
                     return;
                 }
                 program_push(translator, (opcode_t)
@@ -236,7 +235,6 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 const char* name = node->inst.operand->label_call.name;
                 int addr = get_addr_from_proc_decl_symbol(translator, name);
                 if (addr == -1) {
-                    fprintf(stderr, "There is no such a label called: %s\n", name);
                     return;
                 }
                 program_push(translator, (opcode_t)
@@ -286,18 +284,17 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 strcat(name, node->label_call.name);
                 node->label_call.name = name;
                 addr = get_addr_from_label_decl_symbol(translator, name);
-                printf(CLR_BLUE"debug %s\n"CLR_END, prefix);
             } else {
-                name = node->label_call.name;
+                name = (char*)node->label_call.name;
                 if (is_call)
                     addr = get_addr_from_proc_decl_symbol(translator, name);
                 else
                     addr = get_addr_from_label_decl_symbol(translator, name);
             }
 
-            printf("lbl cll addr: %d\n", addr);
             if (addr == -1) {
-                fprintf(stderr, "There is no label declared before called: %s\n", name);
+                fprintf(stderr, "%s:%d:%d:"CLR_RED"Unresolved symbol:"CLR_END" %s\n", node->loc.file_name, node->loc.row, node->loc.col, name);
+                translator->symbols.err = true;
                 return;
             }
             translator->symbols.label_calls[translator->symbols.label_calls_size].name = name;
@@ -398,7 +395,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             translator->symbols.label_address_pointer++;
             break;
         case AST_LABEL_DECL: {
-            // FIXME: check wheter label name already taken
+            // FIXME: support multiple erro messages
             // TODO: hash tables or something can be used here as a performance improvement
             char* name = NULL;
             if (prefix != NULL) {
@@ -409,7 +406,14 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
                 strcat(name, "$");
                 strcat(name, node->label_decl.name);
             } else {
-                name = node->label_decl.name;
+                name = (char*)node->label_decl.name;
+            }
+            for (size_t i = 0; i < translator->symbols.label_decls_size; i++) {
+                if (strcmp(translator->symbols.label_decls[i].name, name) == 0) {
+                    fprintf(stderr, "%s:%d:%d:"CLR_RED"Duplicated label decleration:"CLR_END" %s\n", node->loc.file_name, node->loc.row, node->loc.col, name);
+                    translator->symbols.err = true;
+                    exit(1);
+                }
             }
             size_t addr = translator->symbols.label_address_pointer;
             translator->symbols.label_decls[translator->symbols.label_decls_size].name = name;
@@ -419,7 +423,6 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         }
         case AST_PROC:
             for (size_t i = 0; i < node->proc.line_size; i++) {
-                // TODO: add proc name as a parameter to reslove_labels()
                 tasm_resolve_labels(translator, node->proc.lines[i], node->proc.name);
             }
             break;
@@ -470,11 +473,17 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
             translator->symbols.proc_address_pointer++;
             break;
         case AST_PROC: {
-            // FIXME: check wheter label name already taken
+            // FIXME: support multiple erro messages
             // TODO: hash tables or something can be used here as a performance improvement
             const char* name = node->proc.name;
             size_t addr = translator->symbols.proc_address_pointer;
-            printf("debug: %d\n", addr);
+            for (size_t i = 0; i < translator->symbols.proc_decls_size; i++) {
+                if (strcmp(translator->symbols.proc_decls[i].name, name) == 0) {
+                    fprintf(stderr, "%s:%d:%d:"CLR_RED"Duplicated proc decleration:"CLR_END" %s\n", node->loc.file_name, node->loc.row, node->loc.col, name);
+                    translator->symbols.err = true;
+                    exit(1);
+                }
+            }
             translator->symbols.proc_decls[translator->symbols.proc_decls_size].name = name;
             translator->symbols.proc_decls[translator->symbols.proc_decls_size].addr = addr;
             translator->symbols.proc_decls_size++;
@@ -527,6 +536,7 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
     fwrite(translator->program, sizeof(translator->program[0]), translator->program_size, file);
 
     fclose(file);
+    fprintf(stdout, "out.bin created "CLR_GREEN"successfully."CLR_END"\n");
 }
 
 void symbol_dump(tasm_translator_t *translator) {
@@ -546,6 +556,10 @@ void symbol_dump(tasm_translator_t *translator) {
         printf("%s, %d\n", translator->symbols.proc_decls[i].name, translator->symbols.proc_decls[i].addr);
     }
     
+}
+
+bool is_err(tasm_translator_t* translator) {
+    return translator->symbols.err;
 }
 
 #endif//TRANSLATOR_IMPLEMENTATION

@@ -24,7 +24,7 @@ typedef struct {
     arena_t tokens_arena;
 } tasm_lexer_t;
 
-tasm_lexer_t tasm_lexer_init(const char* src);
+tasm_lexer_t tasm_lexer_init(const char* src, const char* file_name);
 void tasm_lexer_destroy(tasm_lexer_t* lexer);
 
 void tasm_lexer_advance(tasm_lexer_t* lexer);
@@ -48,7 +48,7 @@ bool ishexprefix(char first, char second);
 
 #include <ctype.h>
 
-tasm_lexer_t tasm_lexer_init(const char* src) {
+tasm_lexer_t tasm_lexer_init(const char* src, const char* file_name) {
     tasm_lexer_t lexer = {
         .cursor = 0,
         .source_code = src,
@@ -56,9 +56,9 @@ tasm_lexer_t tasm_lexer_init(const char* src) {
         .current_char = src[0],
         .next_char = src[1],
         .source_code_size = strlen(src),
-        .loc.row = 0,
+        .loc.row = 1,
         .loc.col = 0,
-        .loc.file_name = NULL, // TODO: take file name
+        .loc.file_name = file_name,
         .tokens_arena = arena_init(TOKENS_ARENA_CAPACITY),
     };
     return lexer;

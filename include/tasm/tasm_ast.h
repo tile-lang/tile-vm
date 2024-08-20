@@ -1,6 +1,9 @@
 #ifndef TASM_AST_H_
 #define TASM_AST_H_
 
+#include <tasm/tasm_lexer.h>
+#include <stb_ds.h>
+
 typedef struct tasm_ast{
     enum {
         AST_NONE,
@@ -45,6 +48,7 @@ typedef struct tasm_ast{
         // AST_STRING,
     } tag;
 
+    loc_t loc;
     union {
         struct ast_file {
             struct tasm_ast** lines; // label_decls, procs, instructions
@@ -87,6 +91,7 @@ typedef struct tasm_ast{
 } tasm_ast_t;
 
 tasm_ast_t* tasm_ast_create(tasm_ast_t ast);
+void tasm_ast_destroy(tasm_ast_t* node);
 void tasm_ast_show(tasm_ast_t* root, int indent);
 
 #ifdef TASM_AST_IMPLEMENTATION
@@ -101,6 +106,23 @@ tasm_ast_t* tasm_ast_create(tasm_ast_t ast) {
     if (ptr)
         *ptr = ast;
     return ptr;
+}
+
+void tasm_ast_destroy(tasm_ast_t* node) {
+    if (!node) return;
+    switch (node->tag) {
+        case AST_FILE:
+            for (size_t i = 0; i < node->file.line_size; i++) {
+                tasm_ast_destroy(node->file.lines[i]);
+            }
+            arrfree(node->file.lines);
+            break;
+        case AST_PROC:
+            arrfree(node->proc.lines);
+            break;
+        default:
+            break;
+    }
 }
 
 void print_indent(int indent) {
