@@ -6,8 +6,11 @@ arena_t src_arena;
 char* read_file_content(const char* file_name) {
     FILE* src_file = fopen(file_name, "r");
 
-    if (src_file == NULL)
-        printf("file can't be opened!\n");
+    if (src_file == NULL) {
+        printf(CLR_RED"File can't be opened: "CLR_END"%s\n", file_name);
+        fclose(src_file);
+        exit(1);
+    }
 
     fseek(src_file, 0L, SEEK_END);
     unsigned int file_size = ftell(src_file);
@@ -20,7 +23,8 @@ char* read_file_content(const char* file_name) {
         ch = fgetc(src_file);
         content[i] = ch;
     }
-
+    fclose(src_file);
+    
     return content;
 }
 
