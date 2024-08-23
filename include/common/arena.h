@@ -42,54 +42,51 @@ arena_t arena_init(u64_t size) {
 
 void* arena_alloc(arena_t* arena, u64_t size) {
     void* ptr = NULL;
-    if (arena->capacity > arena->size + size) {
-        ptr = &arena->memory[arena->size];
-        arena->size += size;
-        return ptr;
+    if (arena->capacity <= arena->size + size) {
+        arena_resize(arena, arena->size + size);
     }
-    printf("There is no more area in arena. Increase the capacity!\n");
-    return NULL;
+    ptr = &arena->memory[arena->size];
+    arena->size += size;
+    return ptr;
 }
 
-void* arena_realloc(arena_t* arena, void* ptr, u64_t size) {
+void* arena_realloc(arena_t* arena, void* ptr, u64_t new_size) {
     if (ptr == NULL) {
-        return arena_alloc(arena, size); // If ptr is NULL, just allocate new memory.
+        return arena_alloc(arena, new_size);
     }
-    
+
     u8_t* old_ptr = (u8_t*)ptr;
-    u64_t old_offset = old_ptr - arena->memory;
-    
-    if (old_offset + size <= arena->capacity) {
-        // If the requested size is within the current arena capacity, simply adjust size.
-        arena->size = old_offset + size;
+    size_t old_offset = old_ptr - arena->memory;
+    size_t current_size = arena->size - old_offset;
+
+    // If expanding within available space
+    if (old_offset + new_size <= arena->size) {
+        // Check if it overlaps with the next allocation
+        if (old_offset + new_size > old_offset + current_size) {
+            memmove(&arena->memory[arena->size], old_ptr, current_size);
+            arena->size += new_size - current_size;
+        }
         return old_ptr;
     }
 
-    // Otherwise, allocate new memory within the arena.
-    void* new_ptr = arena_alloc(arena, size);
-    if (new_ptr != NULL) {
-        memcpy(new_ptr, ptr, arena->size - old_offset);
-    } else {
-        printf("Reallocation failed: Not enough space in the arena.\n");
+    // If we need to expand beyond current size, check capacity
+    if (old_offset + new_size > arena->capacity) {
+        arena_resize(arena, arena->capacity * 2);
     }
+
+    // Move the block to a new location
+    void* new_ptr = arena_alloc(arena, new_size);
+    if (new_ptr) {
+        memcpy(new_ptr, old_ptr, current_size);
+        arena->size = old_offset + new_size;
+    }
+
     return new_ptr;
 }
 
 void arena_resize(arena_t* arena, u64_t size) {
-    if (size > arena->capacity) {
-        u8_t* new_memory = (u8_t*)malloc(size);
-        if (new_memory == NULL) {
-            printf("Resize failed!\n");
-            return;
-        }
-        memcpy(new_memory, arena->memory, arena->size);
-        free(arena->memory);
-        arena->memory = new_memory;
-        arena->capacity = size;
-    }
-    if (size < arena->size) {
-        arena->size = size;
-    }
+    arena->memory = (u8_t*)realloc(arena->memory, size);
+    arena->capacity = size;
 }
 
 void arena_reset(arena_t* arena) {
