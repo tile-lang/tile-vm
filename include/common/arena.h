@@ -41,11 +41,11 @@ arena_t arena_init(u64_t size) {
 }
 
 void* arena_alloc(arena_t* arena, u64_t size) {
-    void* ptr = NULL;
-    if (arena->capacity <= arena->size + size) {
-        arena_resize(arena, arena->size + size);
-    }
-    ptr = &arena->memory[arena->size];
+    if (size == 0)
+        return NULL;
+    if (arena->size > arena->capacity - size)
+        arena_resize(arena, arena->capacity * 2);
+    void* ptr = &arena->memory[arena->size];
     arena->size += size;
     return ptr;
 }
@@ -85,7 +85,13 @@ void* arena_realloc(arena_t* arena, void* ptr, u64_t new_size) {
 }
 
 void arena_resize(arena_t* arena, u64_t size) {
-    arena->memory = (u8_t*)realloc(arena->memory, size);
+    u8_t* new_mem = (u8_t*)malloc(size);
+    if (new_mem == NULL) {
+        fprintf(stderr, "ERROR: Arena resize failed!");
+        return;
+    }
+    memcpy(new_mem, arena->memory, arena->capacity);
+    arena->memory = new_mem;
     arena->capacity = size;
 }
 
