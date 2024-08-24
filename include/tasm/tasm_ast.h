@@ -99,10 +99,10 @@ void tasm_ast_show(tasm_ast_t* root, int indent);
 #include <common/arena.h>
 #include <stdio.h>
 
-arena_t ast_arena;
+arena_t* ast_arena;
 
 tasm_ast_t* tasm_ast_create(tasm_ast_t ast) {
-    tasm_ast_t* ptr = arena_alloc(&ast_arena, sizeof(tasm_ast_t));
+    tasm_ast_t* ptr = arena_alloc(ast_arena, sizeof(tasm_ast_t));
     if (ptr)
         *ptr = ast;
     return ptr;
