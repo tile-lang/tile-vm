@@ -21,7 +21,7 @@ typedef struct {
     const char* source_code;
     size_t source_code_size;
     loc_t loc;
-    arena_t tokens_arena;
+    arena_t* tokens_arena;
 } tasm_lexer_t;
 
 tasm_lexer_t tasm_lexer_init(const char* src, const char* file_name);
@@ -65,7 +65,7 @@ tasm_lexer_t tasm_lexer_init(const char* src, const char* file_name) {
 }
 
 void tasm_lexer_destroy(tasm_lexer_t *lexer) {
-    arena_destroy(&lexer->tokens_arena);
+    arena_destroy(lexer->tokens_arena);
 }
 
 void tasm_lexer_advance(tasm_lexer_t* lexer) {
@@ -149,7 +149,7 @@ tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_ID, val);
 
@@ -194,7 +194,7 @@ tasm_token_t tasm_lexer_collect_number(tasm_lexer_t *lexer) {
 
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(type, val);
     return token;
@@ -212,7 +212,7 @@ tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_HEX_NUMBER, val);
     return token;
@@ -230,7 +230,7 @@ tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_BINARY_NUMBER, val);
     return token;

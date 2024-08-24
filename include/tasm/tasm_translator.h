@@ -38,7 +38,7 @@ typedef struct {
     symbol_table_t symbols;
     opcode_t program[MAX_PROGRAM_CAPACITY];
     size_t program_size;
-    arena_t cstr_arena;
+    arena_t* cstr_arena;
 } tasm_translator_t;
 
 tasm_translator_t tasm_translator_init();
@@ -79,7 +79,7 @@ tasm_translator_t tasm_translator_init() {
 }
 
 void tasm_translator_destroy(tasm_translator_t* translator) {
-    arena_destroy(&translator->cstr_arena);
+    arena_destroy(translator->cstr_arena);
 }
 
 static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, const char* prefix, bool is_call) {
@@ -278,7 +278,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_call.name);
-                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
+                name = arena_alloc(translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
                 strcat(name, "$");
                 strcat(name, node->label_call.name);
@@ -401,7 +401,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_decl.name);
-                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
+                name = arena_alloc(translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
                 strcat(name, "$");
                 strcat(name, node->label_decl.name);

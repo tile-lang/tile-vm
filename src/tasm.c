@@ -1,7 +1,7 @@
 #include <tasm/tasm.h>
 #include <common/cmd_colors.h>
 
-arena_t src_arena;
+arena_t* src_arena;
 
 char* read_file_content(const char* file_name) {
     FILE* src_file = fopen(file_name, "r");
@@ -16,7 +16,7 @@ char* read_file_content(const char* file_name) {
     unsigned int file_size = ftell(src_file);
     fseek(src_file, 0L, SEEK_SET);
 
-    char* content = arena_alloc(&src_arena, file_size);
+    char* content = arena_alloc(src_arena, file_size);
 
     char ch = 0;
     for (size_t i = 0; ch != EOF; i++) {
@@ -92,8 +92,8 @@ int main(int argc, char **argv) {
 
     tasm_ast_destroy(ast);
 
-    arena_destroy(&ast_arena);
-    arena_destroy(&src_arena);
+    arena_destroy(ast_arena);
+    arena_destroy(src_arena);
 
 
     return 0;
