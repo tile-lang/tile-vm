@@ -73,15 +73,13 @@ void arena_reset(arena_t* arena) {
 }
 
 void arena_destroy(arena_t* arena) {
-    arena_t* current;
-    current = arena;
-    free(current->memory);
-    for (size_t i = 0; arena->prev != NULL; i++) {
-        current = arena->prev;
-        free(current->memory);
-        free(current->next);
-    }
-    
+    if (arena == NULL)
+        return;
+    if (arena->next)
+        free(arena->next);
+        
+    free(arena->memory);
+    arena_destroy(arena->prev);
 }
 
 
