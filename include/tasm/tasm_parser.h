@@ -317,6 +317,26 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_CU2F: tag = AST_OP_CU2F;
         break;
+    case TOKEN_OP_GT: tag = AST_OP_GT;
+        break;
+    case TOKEN_OP_GTF: tag = AST_OP_GTF;
+        break;
+    case TOKEN_OP_LT: tag = AST_OP_LT;
+        break;
+    case TOKEN_OP_LTF: tag = AST_OP_LTF;
+        break;
+    case TOKEN_OP_EQ: tag = AST_OP_EQ;
+        break;
+    case TOKEN_OP_EQF: tag = AST_OP_EQF;
+        break;
+    case TOKEN_OP_GE: tag = AST_OP_GE;
+        break;
+    case TOKEN_OP_GEF: tag = AST_OP_GEF;
+        break;
+    case TOKEN_OP_LE: tag = AST_OP_LE;
+        break;
+    case TOKEN_OP_LEF: tag = AST_OP_LEF;
+        break;
     case TOKEN_OP_HALT: tag = AST_OP_HALT;
         break;
     default:

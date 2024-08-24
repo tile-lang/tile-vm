@@ -38,6 +38,16 @@ typedef struct tasm_ast{
         AST_OP_CF2U,
         AST_OP_CU2I,
         AST_OP_CU2F,
+        AST_OP_GT,
+        AST_OP_GTF,
+        AST_OP_LT,
+        AST_OP_LTF,
+        AST_OP_EQ,
+        AST_OP_EQF,
+        AST_OP_GE,
+        AST_OP_GEF,
+        AST_OP_LE,
+        AST_OP_LEF,
         AST_OP_HALT,
 
         AST_NUMBER,
@@ -252,6 +262,36 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             break;
         case AST_OP_CU2F:
             printf("CU2F\n");
+            break;
+        case AST_OP_GT:
+            printf("GT\n");
+            break;
+        case AST_OP_GTF:
+            printf("GTF\n");
+            break;
+        case AST_OP_LT:
+            printf("LT\n");
+            break;
+        case AST_OP_LTF:
+            printf("LTF\n");
+            break;
+        case AST_OP_EQ:
+            printf("EQ\n");
+            break;
+        case AST_OP_EQF:
+            printf("EQF\n");
+            break;
+        case AST_OP_GE:
+            printf("GE\n");
+            break;
+        case AST_OP_GEF:
+            printf("GEF\n");
+            break;
+        case AST_OP_LE:
+            printf("LE\n");
+            break;
+        case AST_OP_LEF:
+            printf("LEF\n");
             break;
         case AST_OP_HALT:
             printf("HALT\n");

@@ -56,6 +56,17 @@ typedef enum {
     OP_CF2U,
     OP_CU2I,
     OP_CU2F,
+    /* comparison */
+    OP_GT,
+    OP_GTF,
+    OP_LT,
+    OP_LTF,
+    OP_EQ,
+    OP_EQF,
+    OP_GE,
+    OP_GEF,
+    OP_LE,
+    OP_LEF,
     OP_HALT // termination
 } optype_t;
 
@@ -402,6 +413,126 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
         vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].ui32;  
+        vm->ip++;
+        break;
+    case OP_GT:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].i32 > vm->stack[vm->sp - 2].i32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++; 
+        break;
+    case OP_GTF:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].f32 > vm->stack[vm->sp - 2].f32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_LT:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].i32 < vm->stack[vm->sp - 2].i32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_LTF:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].f32 < vm->stack[vm->sp - 2].f32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_EQ:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].i32 == vm->stack[vm->sp - 2].i32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_EQF:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].f32 == vm->stack[vm->sp - 2].f32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_GE:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].i32 >= vm->stack[vm->sp - 2].i32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_GEF:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].f32 >= vm->stack[vm->sp - 2].f32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_LE:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].i32 <= vm->stack[vm->sp - 2].i32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
+        vm->ip++;
+        break;
+    case OP_LEF:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (vm->stack[vm->sp - 1].f32 <= vm->stack[vm->sp - 2].f32)
+            vm->stack[vm->sp].i32 = 1;
+        else
+            vm->stack[vm->sp].i32 = 0;
+        vm->sp++;
         vm->ip++;
         break;
     case OP_HALT:
