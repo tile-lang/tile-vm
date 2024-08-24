@@ -265,6 +265,36 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_CU2F:
             program_push(translator, (opcode_t){.type = OP_CU2F});
             break;
+        case AST_OP_GT:
+            program_push(translator, (opcode_t){.type = OP_GT});
+            break;
+        case AST_OP_GTF:
+            program_push(translator, (opcode_t){.type = OP_GTF});
+            break;
+        case AST_OP_LT:
+            program_push(translator, (opcode_t){.type = OP_LT});
+            break;
+        case AST_OP_LTF:
+            program_push(translator, (opcode_t){.type = OP_LTF});
+            break;
+        case AST_OP_EQ:
+            program_push(translator, (opcode_t){.type = OP_EQ});
+            break;
+        case AST_OP_EQF:
+            program_push(translator, (opcode_t){.type = OP_EQF});
+            break;
+        case AST_OP_GE:
+            program_push(translator, (opcode_t){.type = OP_GE});
+            break;
+        case AST_OP_GEF:
+            program_push(translator, (opcode_t){.type = OP_GEF});
+            break;
+        case AST_OP_LE:
+            program_push(translator, (opcode_t){.type = OP_LE});
+            break;
+        case AST_OP_LEF:
+            program_push(translator, (opcode_t){.type = OP_LEF});
+            break;
         case AST_OP_HALT:
             program_push(translator, (opcode_t){.type = OP_HALT});
             break;
@@ -391,6 +421,16 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_CF2U:
         case AST_OP_CU2I:
         case AST_OP_CU2F:
+        case AST_OP_GT:
+        case AST_OP_GTF:
+        case AST_OP_LT:
+        case AST_OP_LTF:
+        case AST_OP_EQ:
+        case AST_OP_EQF:
+        case AST_OP_GE:
+        case AST_OP_GEF:
+        case AST_OP_LE:
+        case AST_OP_LEF:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
             break;
@@ -469,6 +509,16 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_CF2U:
         case AST_OP_CU2I:
         case AST_OP_CU2F:
+        case AST_OP_GT:
+        case AST_OP_GTF:
+        case AST_OP_LT:
+        case AST_OP_LTF:
+        case AST_OP_EQ:
+        case AST_OP_EQF:
+        case AST_OP_GE:
+        case AST_OP_GEF:
+        case AST_OP_LE:
+        case AST_OP_LEF:
         case AST_OP_HALT:
             translator->symbols.proc_address_pointer++;
             break;
