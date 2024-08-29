@@ -420,7 +420,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].i32 > vm->stack[vm->sp - 2].i32)
+        if (vm->stack[vm->sp - 2].i32 > vm->stack[vm->sp - 1].i32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -432,7 +432,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].f32 > vm->stack[vm->sp - 2].f32)
+        if (vm->stack[vm->sp - 2].f32 > vm->stack[vm->sp - 1].f32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -444,7 +444,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].i32 < vm->stack[vm->sp - 2].i32)
+        if (vm->stack[vm->sp - 2].i32 < vm->stack[vm->sp - 1].i32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -456,7 +456,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].f32 < vm->stack[vm->sp - 2].f32)
+        if (vm->stack[vm->sp - 2].f32 < vm->stack[vm->sp - 1].f32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -468,7 +468,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].i32 == vm->stack[vm->sp - 2].i32)
+        if (vm->stack[vm->sp - 2].i32 == vm->stack[vm->sp - 1].i32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -480,7 +480,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].f32 == vm->stack[vm->sp - 2].f32)
+        if (vm->stack[vm->sp - 2].f32 == vm->stack[vm->sp - 1].f32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -492,7 +492,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].i32 >= vm->stack[vm->sp - 2].i32)
+        if (vm->stack[vm->sp - 2].i32 >= vm->stack[vm->sp - 1].i32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -504,7 +504,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].f32 >= vm->stack[vm->sp - 2].f32)
+        if (vm->stack[vm->sp - 2].f32 >= vm->stack[vm->sp - 1].f32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -516,7 +516,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].i32 <= vm->stack[vm->sp - 2].i32)
+        if (vm->stack[vm->sp - 2].i32 <= vm->stack[vm->sp - 1].i32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
@@ -528,7 +528,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        if (vm->stack[vm->sp - 1].f32 <= vm->stack[vm->sp - 2].f32)
+        if (vm->stack[vm->sp - 2].f32 <= vm->stack[vm->sp - 1].f32)
             vm->stack[vm->sp].i32 = 1;
         else
             vm->stack[vm->sp].i32 = 0;
