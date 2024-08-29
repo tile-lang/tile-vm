@@ -132,7 +132,11 @@ tasm_ast_t* tasm_parse_line(tasm_parser_t* parser) {
     if (is_line_instruction(parser))
         return tasm_parse_instruction(parser);
 
-    if (parser->current_token.type == TOKEN_ID)
+    if (parser->current_token.type == TOKEN_ID ||
+        parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
+        parser->current_token.type == TOKEN_HEX_NUMBER ||
+        parser->current_token.type == TOKEN_FLOAT_NUMBER ||
+        parser->current_token.type == TOKEN_BINARY_NUMBER)
         tasm_parser_eat(parser, 3200);
 
     if (parser->current_token.type == TOKEN_ENDLINE)
@@ -153,7 +157,11 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
     if (is_line_proc(parser))
         tasm_parser_eat(parser, 6400);
 
-    if (parser->current_token.type == TOKEN_ID)
+    if (parser->current_token.type == TOKEN_ID ||
+        parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
+        parser->current_token.type == TOKEN_HEX_NUMBER ||
+        parser->current_token.type == TOKEN_FLOAT_NUMBER ||
+        parser->current_token.type == TOKEN_BINARY_NUMBER)
         tasm_parser_eat(parser, 3200);
 
     if (parser->current_token.type == TOKEN_ENDLINE)
