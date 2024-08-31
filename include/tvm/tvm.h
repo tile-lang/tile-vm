@@ -7,6 +7,7 @@
 
 #define TVM_STACK_CAPACITY 1024
 #define TVM_PROGRAM_CAPACITY 1024
+#define TVM_METADATA_CAPACITY 512
 #define RETURN_STACK_CAPACITY 1024
 
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
@@ -70,10 +71,16 @@ typedef enum {
     OP_HALT // termination
 } optype_t;
 
-typedef union {
-    uint32_t ui32; // usually for addresses
-    int32_t  i32;
-    float    f32;
+typedef struct {
+    enum {
+        OBJECT_TYPE_ADDRESS,
+        OBJECT_TYPE_NUMBER,
+    } type;
+    union {
+        uint32_t ui32; // usually for addresses
+        int32_t  i32;
+        float    f32;
+    };
 } object_t;
 
 typedef struct {
@@ -81,15 +88,44 @@ typedef struct {
     object_t operand;
 } opcode_t;
 
+typedef enum {
+    CTYPE_UINT8,
+    CTYPE_UINT16,
+    CTYPE_UINT32,
+    CTYPE_UINT64,
+    CTYPE_INT8,
+    CTYPE_INT16,
+    CTYPE_INT32,
+    CTYPE_INT64,
+    CTYPE_PTR,
+    CTYPE_VOID,
+} tvm_ctype;
+
+typedef struct {
+    tvm_ctype  rtype;         // return type
+    tvm_ctype* atypes;        // arg types
+    const char* symbol_name;  // function name
+} tvm_program_cdecl;
+
+typedef struct {
+    int day, month, year; // created at.
+    tvm_program_cdecl cdecls[TVM_METADATA_CAPACITY];
+} tvm_program_metadata_t;
+
+typedef struct {
+    tvm_program_metadata_t metadata;
+    opcode_t code[TVM_PROGRAM_CAPACITY];
+    size_t size;
+} tvm_program_t;
+
 typedef struct {
     object_t stack[TVM_STACK_CAPACITY];
     word_t sp; // stack pointer
 
-    word_t return_stack[RETURN_STACK_CAPACITY]; // object_t should be change with word_t? 
+    word_t return_stack[RETURN_STACK_CAPACITY];
     word_t rsp; // return stack pointer
 
-    opcode_t program[TVM_PROGRAM_CAPACITY];
-    size_t program_size;
+    tvm_program_t program;
     word_t ip; // instruction pointer
 
     bool halted;
@@ -97,8 +133,8 @@ typedef struct {
 
 
 
-void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* program, size_t program_size);
-void tvm_save_program_to_memory(tvm_t* vm, opcode_t* program);
+void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* code, size_t program_size);
+void tvm_save_program_to_memory(tvm_t* vm, opcode_t* code);
 void tvm_load_program_from_file(tvm_t* vm, const char* file_path);
 void tvm_save_program_to_file(tvm_t* vm, const char* file_path);
 const char* exception_to_cstr(exception_t except);
@@ -115,9 +151,11 @@ void tvm_stack_dump(tvm_t* vm);
 #include <stdlib.h>
 #include <string.h>
 
-void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* program, size_t program_size) {
-    vm->program_size = program_size;
-    memcpy(vm->program, program, vm->program_size * sizeof(vm->program[0]));
+#include <tvm/tci.h>
+
+void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* code, size_t program_size) {
+    vm->program.size = program_size;
+    memcpy(vm->program.code, code, vm->program.size * sizeof(vm->program.code[0]));
 }
 
 void tvm_save_program_to_memory(tvm_t* vm, opcode_t* program) {
@@ -135,10 +173,10 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
     fseek(file,0L,SEEK_END);
     long int byte_size = ftell(file);
     fseek(file,0L,SEEK_SET);
-    size_t opcode_size = sizeof(vm->program[0]);
+    size_t opcode_size = sizeof(vm->program.code[0]);
 
-    vm->program_size = byte_size/opcode_size;
-    fread(vm->program, opcode_size, vm->program_size, file);
+    vm->program.size = byte_size/opcode_size;
+    fread(vm->program.code, opcode_size, vm->program.size, file);
     
     fclose(file);
 }
@@ -181,15 +219,17 @@ tvm_t tvm_init() {
         .sp = 0,
         .return_stack = {0},
         .rsp = 0,
-        .program = {0},
-        .program_size = 0,
+        .program = {
+            .code = {0},
+            .size = 0,
+        },
         .ip = 0,
         .halted = 0,
     };
 }
 
 exception_t tvm_exec_opcode(tvm_t* vm) {
-    opcode_t inst = vm->program[vm->ip];
+    opcode_t inst = vm->program.code[vm->ip];
     // printf("inst: %d\n", inst.type);
     tvm_stack_dump(vm);
     switch (inst.type) {
@@ -341,7 +381,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->ip++;
         break;
     case OP_JMP:
-        if (inst.operand.ui32 >= vm->program_size)
+        if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
         vm->ip = inst.operand.ui32;
         // vm->ip++; you can delete this comment
@@ -349,7 +389,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     case OP_JZ:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        else if (inst.operand.ui32 >= vm->program_size)
+        else if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
         if (vm->stack[vm->sp - 1].ui32 == 0)
             vm->ip = inst.operand.ui32;
@@ -359,7 +399,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     case OP_JNZ:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        else if (inst.operand.ui32 >= vm->program_size)
+        else if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
         if (vm->stack[vm->sp - 1].ui32 != 0)
             vm->ip = inst.operand.ui32;
@@ -369,7 +409,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     case OP_CALL:
         if (vm->rsp >= RETURN_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
-        else if (inst.operand.ui32 >= vm->program_size)
+        else if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
         vm->return_stack[vm->rsp++] = vm->ip + 1;
         vm->ip = inst.operand.ui32;
@@ -548,7 +588,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
 }
 
 void tvm_run(tvm_t* vm) {
-    while (!vm->halted && vm->ip <= vm->program_size) {
+    while (!vm->halted && vm->ip <= vm->program.size) {
         exception_t except = tvm_exec_opcode(vm);
         if (except != EXCEPT_OK) {
             fprintf(stderr, "ERROR: Exception occured %s\n", exception_to_cstr(except));
