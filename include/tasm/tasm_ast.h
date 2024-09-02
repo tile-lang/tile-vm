@@ -115,8 +115,8 @@ typedef struct tasm_ast{
 
         // tile c interface
         struct ast_cfunction {
-            int ret_type;
-            int* arg_types;
+            uint8_t ret_type;
+            uint8_t* arg_types;
             size_t arg_count;
             const char* name;
         } cfunction;

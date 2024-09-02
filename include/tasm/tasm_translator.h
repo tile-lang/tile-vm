@@ -36,8 +36,7 @@ typedef struct {
 
 typedef struct {
     symbol_table_t symbols;
-    opcode_t program[MAX_PROGRAM_CAPACITY];
-    size_t program_size;
+    tvm_program_t program;
     arena_t* cstr_arena;
 } tasm_translator_t;
 
@@ -53,6 +52,8 @@ static void program_push(tasm_translator_t* translator, opcode_t code);
 static size_t get_addr_from_label_decl_symbol(tasm_translator_t* translator, const char* name);
 static size_t get_addr_from_label_call_symbol(tasm_translator_t* translator, const char* name);
 static size_t get_addr_from_proc_decl_symbol(tasm_translator_t* translator, const char* name);
+void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node);
+void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translator_generate_bin(tasm_translator_t* translator);
 void symbol_dump(tasm_translator_t* translator);
 bool is_err(tasm_translator_t* translator);
@@ -62,7 +63,16 @@ bool is_err(tasm_translator_t* translator);
 
 tasm_translator_t tasm_translator_init() {
     return (tasm_translator_t) {
-        .program = {0},
+        .program = {
+            .metadata = {
+                .date = 0,
+                .hour = 0,
+                .cfuns = {0},
+            },
+            .code = {0},
+            .size = 0,
+            .program_arena = NULL,
+        },
         .symbols = (symbol_table_t){
             .label_calls = {0},
             .label_calls_size = 0,
@@ -73,7 +83,6 @@ tasm_translator_t tasm_translator_init() {
             .label_address_pointer = 0,
             .err = false,
         },
-        .program_size = 0,
         .cstr_arena = arena_init(1024),
     };
 }
@@ -335,10 +344,33 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_PROC:
             fprintf(stderr, CLR_RED"It is not possible to create proc inside another proc!"CLR_END);
             break;
+        // c interface
+        case AST_CFUNCTION:
+            tasm_translate_cfunction(translator, node);
+            break;
+        case AST_CSTRUCT:
+            tasm_translate_cstruct(translator, node);
+            break;
         default:
-            fprintf(stderr, "");
+            // fprintf(stderr, "unimplemented ast! %d\n", node->tag);
             break;
     }
+}
+
+void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node) {
+    tvm_program_cfun_t cfun = (tvm_program_cfun_t) {
+        .rtype = node->cfunction.ret_type,
+        .atypes = node->cfunction.arg_types,
+        .acount = arrlen(node->cfunction.arg_types),
+        .symbol_name = node->cfunction.name,
+    };
+    translator->program.metadata.cfuns[translator->program.metadata.cfun_count++] = cfun;
+}
+
+void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node) {
+    UNUSED_VAR(translator);
+    UNUSED_VAR(node);
+    // TODO: implement this
 }
 
 static void tasm_translate_proc_and_line(tasm_translator_t *translator, tasm_ast_t *node) {
@@ -549,7 +581,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
 }
 
 static void program_push(tasm_translator_t* translator, opcode_t code) {
-    translator->program[translator->program_size++] = code;
+    translator->program.code[translator->program.size++] = code;
 }
 
 static size_t get_addr_from_label_decl_symbol(tasm_translator_t* translator, const char* name) {
@@ -583,7 +615,41 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
     FILE* file;
     file = fopen("out.bin", "wb");
 
-    fwrite(translator->program, sizeof(translator->program[0]), translator->program_size, file);
+//    .METADATA
+
+//      4 byte fun_count
+//    .block
+//         1                 byte fun_name_length
+//         (fun name length) byte fun name
+//         2                 byte acount
+//         1                 byte rtype
+//         (4 * acount)      byte atype
+//
+//     fun_count * .block
+//    ...
+//    .CODE
+//    ...
+    
+    {
+        uint32_t fun_count = translator->program.metadata.cfun_count;
+        fwrite(&fun_count, sizeof(fun_count), 1, file);
+        for (size_t i = 0; i < fun_count; i++) {
+            const char* fun_name = translator->program.metadata.cfuns[i].symbol_name;
+            uint8_t fun_name_len = strlen(fun_name);
+            uint16_t acount = translator->program.metadata.cfuns[i].acount;
+            uint8_t rtype = translator->program.metadata.cfuns[i].rtype;            
+            
+            fwrite(&fun_name_len, sizeof(fun_name_len), 1, file);
+            fwrite(fun_name, sizeof(fun_name[0]), fun_name_len, file);
+            fwrite(&acount, sizeof(acount), 1, file);
+            fwrite(&rtype, sizeof(rtype), 1, file);
+            for (size_t j = 0; j < acount; j++) {
+                uint8_t atype = translator->program.metadata.cfuns[i].atypes[j];
+                fwrite(&atype, sizeof(atype), 1, file);
+            }
+        }
+        fwrite(translator->program.code, sizeof(translator->program.code[0]), translator->program.size, file);
+    }
 
     fclose(file);
     fprintf(stdout, "out.bin created "CLR_GREEN"successfully."CLR_END"\n");
