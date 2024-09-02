@@ -490,6 +490,7 @@ tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser) {
     if (parser->current_token.type == TOKEN_CSTRUCT)
         return tasm_parse_cstruct(parser);
     
+    tasm_parser_eat(parser, 8000);
     return NULL;
 }
 
@@ -505,9 +506,9 @@ tasm_ast_t* tasm_parse_cfunction(tasm_parser_t* parser) {
     const char* fun_name = parser->current_token.value;
     tasm_parser_eat(parser, TOKEN_ID);
 
-    int argcount = 0;
-    int* argtpyes = NULL;
-    for (; parser->current_token.type != TOKEN_ENDLINE;) {
+    uint16_t argcount = 0;
+    uint8_t* argtpyes = NULL;
+    for (; parser->current_token.type != TOKEN_ENDLINE && parser->current_token.type != TOKEN_EOF;) {
         if (!is_token_ctype(parser))
             tasm_parser_eat(parser, COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR);
         arrput(argtpyes, parser->current_token.type - TOKEN_TCI_BEGIN - 1);

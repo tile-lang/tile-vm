@@ -277,11 +277,12 @@ const char* _inst_strings_upper[] = {
     "HLT"
 };
 
-const size_t _tci_ctypes_count = 10;
+const size_t _tci_ctypes_count = 12;
 
 const char* _tci_ctypes[] = {
     "u8", "u16", "u32", "u64",
     "i8", "i16", "i32", "i64",
+    "f32", "f64",
     "ptr", "void",
 };
 
