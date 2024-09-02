@@ -5,6 +5,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define ARENA_IMPLEMENTATION
+#include <common/arena.h>
+
 #define TVM_STACK_CAPACITY 1024
 #define TVM_PROGRAM_CAPACITY 1024
 #define TVM_METADATA_CAPACITY 512
@@ -97,25 +100,37 @@ typedef enum {
     CTYPE_INT16,
     CTYPE_INT32,
     CTYPE_INT64,
+    CTYPE_FLOAT32,
+    CTYPE_FLOAT64,
     CTYPE_PTR,
     CTYPE_VOID,
 } tvm_ctype;
 
 typedef struct {
-    tvm_ctype  rtype;         // return type
-    tvm_ctype* atypes;        // arg types
+    uint8_t  rtype;           // return type
+    uint8_t* atypes;          // arg types
+    uint16_t acount;          // arg count
     const char* symbol_name;  // function name
-} tvm_program_cdecl;
+} tvm_program_cfun_t;
+//TODO: support structs and function pointers, it will be much more complicated. it is now only primitives
+
+// typedef struct tvm_program_cstruct {
+//     tvm_ctype* etypes;                  // element types
+//     struct tvm_program_cstruct* ctypes; // composite types
+//     const char* symbol_name;            // struct name
+// } tvm_program_cstruct_t;
 
 typedef struct {
-    int day, month, year; // created at.
-    tvm_program_cdecl cdecls[TVM_METADATA_CAPACITY];
+    int date, hour; // created at.
+    tvm_program_cfun_t cfuns[TVM_METADATA_CAPACITY];
+    uint32_t cfun_count;
 } tvm_program_metadata_t;
 
 typedef struct {
     tvm_program_metadata_t metadata;
     opcode_t code[TVM_PROGRAM_CAPACITY];
     size_t size;
+    arena_t* program_arena;
 } tvm_program_t;
 
 typedef struct {
@@ -175,6 +190,38 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
     fseek(file,0L,SEEK_SET);
     size_t opcode_size = sizeof(vm->program.code[0]);
 
+    uint32_t cfun_count;
+    fread(&cfun_count, sizeof(uint32_t), 1, file);
+    byte_size -= sizeof(uint32_t);
+    vm->program.metadata.cfun_count = cfun_count;
+    {
+        for (size_t i = 0; i < cfun_count; i++) {    
+            uint8_t symbol_name_len;
+            fread(&symbol_name_len, sizeof(uint8_t), 1, file);
+            byte_size -= sizeof(uint8_t);
+
+            char* symbol_name = arena_alloc(vm->program.program_arena, sizeof(char) * symbol_name_len + 1);
+            fread(symbol_name, sizeof(char), symbol_name_len, file);
+            byte_size -= sizeof(char) * symbol_name_len;
+
+            uint16_t acount;
+            fread(&acount, sizeof(uint16_t), 1, file);
+            byte_size -= sizeof(uint16_t);
+
+            uint8_t rtype;
+            fread(&rtype, sizeof(uint8_t), 1, file);
+            byte_size -= sizeof(uint8_t);
+
+            uint8_t* atypes = arena_alloc(vm->program.program_arena, sizeof(uint8_t) * acount);
+            fread(atypes, sizeof(uint8_t), acount, file);
+            byte_size -= sizeof(uint8_t) * acount;
+
+            vm->program.metadata.cfuns[i].symbol_name = symbol_name;
+            vm->program.metadata.cfuns[i].acount = acount;
+            vm->program.metadata.cfuns[i].rtype = rtype;
+            vm->program.metadata.cfuns[i].atypes = atypes;
+        }
+    }
     vm->program.size = byte_size/opcode_size;
     fread(vm->program.code, opcode_size, vm->program.size, file);
     
@@ -220,8 +267,14 @@ tvm_t tvm_init() {
         .return_stack = {0},
         .rsp = 0,
         .program = {
+            .metadata = {
+                .date = 0,
+                .hour = 0,
+                .cfuns = {0},
+            },
             .code = {0},
             .size = 0,
+            .program_arena = arena_init(1024),
         },
         .ip = 0,
         .halted = 0,
