@@ -640,7 +640,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp++;
         vm->ip++;
         break;
-    case OP_NATIVE:
+    case OP_NATIVE: {
         tvm_program_cfun_t native_func = vm->program.metadata.cfuns[inst.operand.ui32];
         uint32_t native_func_count = vm->program.metadata.cfun_count;
         if (vm->sp < native_func.acount)
@@ -649,6 +649,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS;
         // TODO: implement me
         break;
+    }
     case OP_HALT:
         vm->halted = true;
         vm->ip++;
