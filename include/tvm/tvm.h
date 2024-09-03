@@ -22,6 +22,7 @@ typedef enum {
     EXCEPT_STACK_OVERFLOW,
     EXCEPT_INVALID_INSTRUCTION,
     EXCEPT_INVALID_INSTRUCTION_ACCESS,
+    EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS,
     EXCEPT_INVALID_STACK_ACCESS,
     EXCEPT_DIVISION_BY_ZERO,
 } exception_t;
@@ -71,6 +72,9 @@ typedef enum {
     OP_GEF,
     OP_LE,
     OP_LEF,
+    /* native */
+    OP_NATIVE,
+    /* halt */
     OP_HALT // termination
 } optype_t;
 
@@ -249,6 +253,8 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_INSTRUCTION";
     case EXCEPT_INVALID_INSTRUCTION_ACCESS:
         return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
+    case EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS:
+        return "EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS";
     case EXCEPT_INVALID_STACK_ACCESS:
         return "EXCEPT_INVALID_STACK_ACCESS";
     case EXCEPT_DIVISION_BY_ZERO:
@@ -634,6 +640,15 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp++;
         vm->ip++;
         break;
+    case OP_NATIVE:
+        tvm_program_cfun_t native_func = vm->program.metadata.cfuns[inst.operand.ui32];
+        uint32_t native_func_count = vm->program.metadata.cfun_count;
+        if (vm->sp < native_func.acount)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (inst.operand.ui32 >= native_func_count)
+            return EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS;
+        // TODO: implement me
+        break;
     case OP_HALT:
         vm->halted = true;
         vm->ip++;
@@ -650,11 +665,11 @@ void tvm_run(tvm_t* vm) {
     while (!vm->halted && vm->ip <= vm->program.size) {
         exception_t except = tvm_exec_opcode(vm);
         if (except != EXCEPT_OK) {
-            fprintf(stderr, "ERROR: Exception occured %s\n", exception_to_cstr(except));
+            fprintf(stderr, CLR_RED"ERROR: Exception occured "CLR_END "%s\n", exception_to_cstr(except));
             exit(1);
         }
     }
-    fprintf(stdout, "Program halted succesfully...\n");
+    fprintf(stdout, "Program halted " CLR_GREEN"succesfully...\n"CLR_END);
 }
 
 void tvm_stack_dump(tvm_t *vm) {
