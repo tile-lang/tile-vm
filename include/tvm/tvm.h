@@ -154,6 +154,7 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path);
 void tvm_save_program_to_file(tvm_t* vm, const char* file_path);
 const char* exception_to_cstr(exception_t except);
 tvm_t tvm_init();
+void tvm_destroy(tvm_t* vm);
 exception_t tvm_exec_opcode(tvm_t* vm);
 void tvm_run(tvm_t* vm);
 void tvm_stack_dump(tvm_t* vm);
@@ -279,6 +280,11 @@ tvm_t tvm_init() {
         .ip = 0,
         .halted = 0,
     };
+}
+
+void tvm_destroy(tvm_t* vm) {
+    if (vm->program.program_arena)
+        arena_destroy(vm->program.program_arena);
 }
 
 exception_t tvm_exec_opcode(tvm_t* vm) {
