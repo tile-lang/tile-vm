@@ -105,7 +105,7 @@ void tci_metaprogram_to_ffi(tci_t* instance, tvm_t* vm) {
 
 void tci_native_call(tvm_t* vm, uint32_t id, void *rvalue, void **avalues) {
     printf("id: %d\n", id);
-    const char* proc_name = vm->program.metadata.cfuns[0].symbol_name;
+    const char* proc_name = vm->program.metadata.cfuns[id].symbol_name;
     printf(CLR_BLUE"%s\n"CLR_END, proc_name);
     if (tci_instance.modules[tci_instance.module_count - 1].native_funcs[id].is_ok == true) {
         cfunptr_t func_ptr = tci_get_cfunction(&tci_instance, proc_name);
