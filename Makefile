@@ -7,7 +7,7 @@ run: tvm
 	./build/tvm.exe
 tvm:
 	if not exist build mkdir build
-	$(CC) $(CFLAGS) ./src/tvm.c -I "./include" -I "./extern/libffi-win32/include" -o ./build/tvm.exe -L ./extern/libffi-win32/lib -llibffi
+	$(CC) $(CFLAGS) ./src/tvm.c ./src/tci.c -I "./include" -I "./extern/libffi-win32/include" -o ./build/tvm.exe -L ./extern/libffi-win32/lib -llibffi
 
 tasm:
 	if not exist build mkdir build

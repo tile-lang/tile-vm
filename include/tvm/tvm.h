@@ -163,15 +163,14 @@ exception_t tvm_exec_opcode(tvm_t* vm);
 void tvm_run(tvm_t* vm);
 void tvm_stack_dump(tvm_t* vm);
 
-
+void tci_native_call(tvm_t* vm, uint32_t id, void* rvalue, void** avalues);
 
 #ifdef TVM_IMPLEMENTATION
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <tvm/tci.h>
+#include <common/cmd_colors.h>
 
 void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* code, size_t program_size) {
     vm->program.size = program_size;
@@ -207,6 +206,7 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
 
             char* symbol_name = arena_alloc(vm->program.program_arena, sizeof(char) * symbol_name_len + 1);
             fread(symbol_name, sizeof(char), symbol_name_len, file);
+            symbol_name[symbol_name_len] = '\0';
             byte_size -= sizeof(char) * symbol_name_len;
 
             uint16_t acount;
@@ -647,7 +647,15 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (inst.operand.ui32 >= native_func_count)
             return EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS;
-        // TODO: implement me
+        // TODO: implement this in a general way!
+        unsigned long ret;
+        void* vargs[2];
+        vargs[0] = &vm->stack[vm->sp - 2].ui32;
+        vargs[1] = &vm->stack[vm->sp - 1].ui32;
+        tci_native_call(vm, inst.operand.ui32, &ret, vargs);
+        vm->stack[vm->sp].ui32 = ret;
+        vm->sp++;
+        vm->ip++;
         break;
     }
     case OP_HALT:

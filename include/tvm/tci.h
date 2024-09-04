@@ -6,84 +6,57 @@
 #else
 #include <dlfcn.h>
 #endif
-#include <stdio.h>
-#include <common/cmd_colors.h>
+#include <common/arena.h>
 
-// #include <ffi.h>
+#include <tvm/tvm.h>
+
+#include <ffi.h>
 
 #ifdef _WIN32
-    typedef HMODULE tci_module_t;
+    typedef HMODULE tci_module_handle_t;
     typedef DWORD err_str_t;
+    typedef FARPROC cfunptr_t;
 #else
-    typedef void* tci_module_t;
+    typedef void* tci_module_handle_t;
     typedef const char* err_str_t;
+    typedef void (__stdcall *cfunptr_t)(void);
 #endif
 
 #define TCI_MODULE_CAPACITY 32
 
 typedef struct {
+    ffi_cif cif;
+    bool is_ok;
+} tci_native_func_t;
+
+typedef struct {
+    tci_module_handle_t handle;
+    const char* name;
+    tci_native_func_t* native_funcs;
+    uint32_t native_func_count;
+} tci_module_t;
+
+typedef struct {
     tci_module_t modules[TCI_MODULE_CAPACITY];
-    const char*  module_names[TCI_MODULE_CAPACITY];
-    size_t modules_size;
+    size_t module_count;
+    arena_t* ffi_arena;
 } tci_t;
 
+tci_t tci_init();
+void tci_destroy(tci_t* instance);
 
-void tci_load_library(tci_t* instance, const char* lib_name);
-int test_ffi_puts(tci_t* instance);
-void tci_unload_library(tci_t* instance, const char* lib_name); //TODO: implement this
+void tci_load_module(tci_t* instance, const char* module_name);
 void tci_unload_all(tci_t* instance);
 
-// #define TCI_IMPLEMENTATION
-#ifdef TCI_IMPLEMENTATION
 
-void tci_load_library(tci_t* instance, const char* lib_name) {
-    tci_module_t lib;
-#ifdef _WIN32
-    lib = LoadLibrary(lib_name);
-    err_str_t last_err = GetLastError();
-#else
-    lib = dlopen(lib_name, RTLD_LAZY);
-    err_str_t last_err = dlerror();
-#endif
-    if (!lib) {
-        fprintf(stderr, CLR_RED"Rutime library loading error at "CLR_END"%s: %s\n", lib_name, last_err);
-        exit(1);
-    }
-    instance->modules[instance->modules_size] = lib;
-    instance->module_names[instance->modules_size] = lib_name;
-    instance->modules_size++;
-    fprintf(stdout, CLR_WHITE"Rutime library loaded "CLR_GREEN"successfully. "CLR_END"%s\n", lib_name);
-}
+void tci_prepare_last_module(tci_t* instance, uint32_t native_func_count);
+void tci_prepare_function(arena_t* arena, tci_native_func_t* function, uint8_t rtype, uint8_t* atypes, uint16_t acount);
 
-int test_ffi_puts(tci_t* instance) {
+cfunptr_t tci_get_cfunction(tci_t* instance, /* TODO: give module name as param */ const char* func_name);
 
-    
+void tci_metaprogram_to_ffi(tci_t* instance, tvm_t* vm);
+void tci_native_call(tvm_t* vm, uint32_t id, void* rvalue, void** avalues);
 
-    return 0;
-}
-
-void tci_unload_library(tci_t* instance, const char* lib_name) {
-    UNUSED_VAR(instance);
-    UNUSED_VAR(lib_name);
-}
-
-void tci_unload_all(tci_t* instance) {
-    for (size_t i = 0; i < instance->modules_size; ++i) {
-#ifdef _WIN32
-        if (FreeLibrary(instance->modules[i]) == 0) {
-            fprintf(stderr, CLR_RED"ERROR: could not unload module"CLR_END "%zu: %u\n", i, GetLastError());
-            exit(1);
-        }
-#else
-        if (dlclose(instance->modules[i]) != 0) {
-            fprintf(stderr, CLR_RED"ERROR: could not unload module"CLR_END "%zu: %s\n", i, dlerror());
-            exit(1);
-        }
-#endif
-    }
-}
-
-
-#endif//TCI_IMPLEMENTATION
+ffi_type* tci_ctype_to_ffi_type(uint8_t ctype);
 
 #endif//TCI_H_
