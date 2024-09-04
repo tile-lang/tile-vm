@@ -5,6 +5,33 @@
 #include <tasm/tasm_ast.h>
 #include <common/cmd_colors.h>
 
+/*
+    this err codes are between 1000 - 10000
+    * first digit shows err type
+    * second digit shows different version of that erro type
+    * third digit shows nothing for now
+    * fourth digit shows where that erro can be happened
+        - 0: global scope
+        - 1: proc scope
+        - 2: both scopes
+*/
+#define COMPOSITE_TYPE_ERR_CODE 1000
+#define COMPSITE_ERR_FILE_LINE_UNEXPECTED_ID_OR_NUMBER 1200
+#define COMPSITE_ERR_PROC_LINE_UNEXPECTED_ID_OR_NUMBER 1201
+#define COMPSITE_ERR_PUSH_WRONG_OPERAND                2002
+#define COMPSITE_ERR_CLN_WRONG_OPERAND                 2102
+#define COMPSITE_ERR_SWAP_WRONG_OPERAND                2202
+#define COMPSITE_ERR_JMP_WRONG_OPERAND                 2302
+#define COMPSITE_ERR_JZ_WRONG_OPERAND                  2402
+#define COMPSITE_ERR_JNZ_WRONG_OPERAND                 2502
+#define COMPSITE_ERR_CALL_WRONG_OPERAND                2602
+#define COMPSITE_ERR_PROC_INSIDE_PROC                  3401
+#define COMPSITE_ERR_CINTERFACE_INSIDE_PROC            3601
+#define COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR           4000
+#define COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR           4100
+#define COMPSITE_ERR_FILE_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE  5100
+#define COMPSITE_ERR_PROC_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE  5101
+
 typedef struct {
     tasm_token_t current_token;
     tasm_token_t prev_token;
@@ -25,6 +52,9 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_decl(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_proc(tasm_parser_t* parser);
 
+tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_cfunction(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser);
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_int_operand(tasm_parser_t* parser);
@@ -60,6 +90,62 @@ void tasm_parser_destroy(tasm_parser_t* parser) {
     tasm_lexer_destroy(parser->lexer);
 }
 
+void tasm_parser_eat_err_msg(int token_type) {
+    if (token_type < COMPOSITE_TYPE_ERR_CODE)
+        return;
+    switch (token_type)
+    {
+    case COMPSITE_ERR_FILE_LINE_UNEXPECTED_ID_OR_NUMBER:
+        fprintf(stderr, "COMPSITE_ERR_FILE_LINE_UNEXPECTED_ID_OR_NUMBER\n");
+        break;
+    case COMPSITE_ERR_PROC_LINE_UNEXPECTED_ID_OR_NUMBER:
+        fprintf(stderr, "COMPSITE_ERR_PROC_LINE_UNEXPECTED_ID_OR_NUMBER\n");
+        break;
+    case COMPSITE_ERR_PUSH_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_PUSH_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_CLN_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_CLN_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_SWAP_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_SWAP_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_JMP_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_JMP_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_JZ_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_JZ_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_JNZ_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_JNZ_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_CALL_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_CALL_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_PROC_INSIDE_PROC:
+        fprintf(stderr, "COMPSITE_ERR_PROC_INSIDE_PROC\n");
+        break;
+    case COMPSITE_ERR_CINTERFACE_INSIDE_PROC:
+        fprintf(stderr, "COMPSITE_ERR_CINTERFACE_INSIDE_PROC\n");
+        break;
+    case COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR:
+        fprintf(stderr, "COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR\n");
+        break;
+    case COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR:
+        fprintf(stderr, "COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR\n");
+        break;
+    case COMPSITE_ERR_FILE_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE:
+        fprintf(stderr, "COMPSITE_ERR_FILE_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE\n");
+        break;
+    case COMPSITE_ERR_PROC_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE:
+        fprintf(stderr, "COMPSITE_ERR_PROC_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE\n");
+        break;
+    default:
+        fprintf(stderr, "NOT IMPLEMENTED ERR TYPE\n");
+        break;
+    }
+}
+
 void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
     if (parser->current_token.type != token_type) {
         printf(
@@ -72,6 +158,7 @@ void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
         token_type
         );
         tasm_lexer_destroy(parser->lexer);
+        tasm_parser_eat_err_msg(token_type);
         exit(-1);
     } else {
         parser->prev_token = parser->current_token;
@@ -123,6 +210,26 @@ bool is_line_instruction(tasm_parser_t* parser) {
     return false;
 }
 
+bool is_line_cinterface(tasm_parser_t* parser) {
+    if (parser->current_token.type == TOKEN_AT)
+        return true;
+    return false;
+}
+
+bool is_line_cinterface_token(tasm_parser_t* parser) {
+    if (parser->current_token.type == TOKEN_CFUNCTION
+    ||  parser->current_token.type == TOKEN_CSTRUCT
+    ||  (parser->current_token.type > TOKEN_TCI_BEGIN && parser->current_token.type < TOKEN_TCI_END))
+        return true;
+    return false;
+}
+
+bool is_token_ctype(tasm_parser_t* parser) {
+    if (parser->current_token.type > TOKEN_TCI_BEGIN
+    && parser->current_token.type < TOKEN_TCI_END)
+        return true;
+    return false;
+}
 
 tasm_ast_t* tasm_parse_line(tasm_parser_t* parser) {
     if (is_line_label_decl(parser))
@@ -131,13 +238,18 @@ tasm_ast_t* tasm_parse_line(tasm_parser_t* parser) {
         return tasm_parse_proc(parser);
     if (is_line_instruction(parser))
         return tasm_parse_instruction(parser);
+    if (is_line_cinterface(parser))
+        return tasm_parse_metadata(parser);
 
     if (parser->current_token.type == TOKEN_ID ||
         parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
         parser->current_token.type == TOKEN_HEX_NUMBER ||
         parser->current_token.type == TOKEN_FLOAT_NUMBER ||
         parser->current_token.type == TOKEN_BINARY_NUMBER)
-        tasm_parser_eat(parser, 3200);
+        tasm_parser_eat(parser, COMPSITE_ERR_FILE_LINE_UNEXPECTED_ID_OR_NUMBER);
+
+    if (is_line_cinterface_token(parser))
+        tasm_parser_eat(parser, COMPSITE_ERR_FILE_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE);
 
     if (parser->current_token.type == TOKEN_ENDLINE)
         tasm_parser_eat(parser, TOKEN_ENDLINE);
@@ -155,14 +267,19 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
     if (is_line_instruction(parser))
         return tasm_parse_instruction(parser);
     if (is_line_proc(parser))
-        tasm_parser_eat(parser, 6400);
+        tasm_parser_eat(parser, COMPSITE_ERR_PROC_INSIDE_PROC);
+    if (is_line_cinterface(parser))
+        tasm_parser_eat(parser, COMPSITE_ERR_CINTERFACE_INSIDE_PROC);
 
     if (parser->current_token.type == TOKEN_ID ||
         parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
         parser->current_token.type == TOKEN_HEX_NUMBER ||
         parser->current_token.type == TOKEN_FLOAT_NUMBER ||
         parser->current_token.type == TOKEN_BINARY_NUMBER)
-        tasm_parser_eat(parser, 3200);
+        tasm_parser_eat(parser, COMPSITE_ERR_PROC_LINE_UNEXPECTED_ID_OR_NUMBER);
+
+    if (is_line_cinterface_token(parser))
+        tasm_parser_eat(parser, COMPSITE_ERR_PROC_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE);
 
     if (parser->current_token.type == TOKEN_ENDLINE)
         tasm_parser_eat(parser, TOKEN_ENDLINE);
@@ -257,7 +374,7 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_PUSH: tag = AST_OP_PUSH;
         operand = tasm_parse_push_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_PUSH_WRONG_OPERAND);
         break;
     case TOKEN_OP_ADD: tag = AST_OP_ADD;
         break;
@@ -273,11 +390,11 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_CLN: tag = AST_OP_CLN;
         operand = tasm_parse_int_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 2000);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_CLN_WRONG_OPERAND);
         break;
     case TOKEN_OP_SWAP: tag = AST_OP_SWAP;
         operand = tasm_parse_int_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 2000);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_SWAP_WRONG_OPERAND);
         break;
     case TOKEN_OP_ADDF: tag = AST_OP_ADDF;
         break;
@@ -297,19 +414,19 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_JMP: tag = AST_OP_JMP;
         operand = tasm_parse_jmp_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_JMP_WRONG_OPERAND);
         break;
     case TOKEN_OP_JZ: tag = AST_OP_JZ;
         operand = tasm_parse_jmp_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_JZ_WRONG_OPERAND);
         break;
     case TOKEN_OP_JNZ: tag = AST_OP_JNZ;
         operand = tasm_parse_jmp_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_JNZ_WRONG_OPERAND);
         break;
     case TOKEN_OP_CALL: tag = AST_OP_CALL;
         operand = tasm_parse_label_operand(parser);
-        if (operand == NULL) tasm_parser_eat(parser, 1400);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_CALL_WRONG_OPERAND);
         break;
     case TOKEN_OP_RET: tag = AST_OP_RET;
         break;
@@ -365,6 +482,61 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         .inst.operand = operand,
     });
 }
+
+tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser) {
+    tasm_parser_eat(parser, TOKEN_AT);
+    if (parser->current_token.type == TOKEN_CFUNCTION)
+        return tasm_parse_cfunction(parser);
+    if (parser->current_token.type == TOKEN_CSTRUCT)
+        return tasm_parse_cstruct(parser);
+    
+    tasm_parser_eat(parser, 8000);
+    return NULL;
+}
+
+tasm_ast_t* tasm_parse_cfunction(tasm_parser_t* parser) {
+    tasm_parser_eat(parser, TOKEN_CFUNCTION);
+    const loc_t loc = parser->lexer->loc;
+
+    int rtype = parser->current_token.type - TOKEN_TCI_BEGIN - 1;
+    if (!is_token_ctype(parser))
+        tasm_parser_eat(parser, COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR);
+    tasm_parser_eat(parser, parser->current_token.type);
+
+    const char* fun_name = parser->current_token.value;
+    tasm_parser_eat(parser, TOKEN_ID);
+
+    uint16_t argcount = 0;
+    uint8_t* argtpyes = NULL;
+    for (; parser->current_token.type != TOKEN_ENDLINE && parser->current_token.type != TOKEN_EOF;) {
+        if (!is_token_ctype(parser))
+            tasm_parser_eat(parser, COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR);
+        arrput(argtpyes, parser->current_token.type - TOKEN_TCI_BEGIN - 1);
+        tasm_parser_eat(parser, parser->current_token.type);
+        argcount++;
+    }
+    
+    return tasm_ast_create((tasm_ast_t) {
+        .tag = AST_CFUNCTION,
+        .loc = loc,
+        .cfunction.ret_type = rtype,
+        .cfunction.arg_types = argtpyes,
+        .cfunction.arg_count = argcount,
+        .cfunction.name = fun_name,
+    });
+}
+
+tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser) {
+    tasm_parser_eat(parser, TOKEN_CSTRUCT);
+    const loc_t loc = parser->lexer->loc;
+
+    return tasm_ast_create((tasm_ast_t) {
+        .tag = AST_CFUNCTION,
+        .loc = loc,
+        .cstruct.name = "cstruct",
+    });
+}
+
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
     if (parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
@@ -430,7 +602,7 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser) {
         break;
     }
     case TOKEN_FLOAT_NUMBER: {
-        float val = atof(text_val);
+        float val = strtof(text_val, NULL);
         value = *(uint32_t*)&val;
         break;
     }
@@ -455,7 +627,6 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser) {
         .loc = parser->lexer->loc,
         .number.text_value = text_val,
         .number.value.u32 = value,
-        // FIXME: find a way to support for floating or hex vals
     });
 }
 

@@ -4,10 +4,26 @@
 #include <tasm/tasm_lexer.h>
 #include <stb_ds.h>
 
+typedef enum {
+    AST_CTYPE_UINT8,
+    AST_CTYPE_UINT16,
+    AST_CTYPE_UINT32,
+    AST_CTYPE_UINT64,
+    AST_CTYPE_INT8,
+    AST_CTYPE_INT16,
+    AST_CTYPE_INT32,
+    AST_CTYPE_INT64,
+    AST_CTYPE_PTR,
+    AST_CTYPE_VOID,
+} tasm_ast_ctype;
+
 typedef struct tasm_ast{
     enum {
         AST_NONE,
         AST_FILE,
+
+        AST_CFUNCTION,
+        AST_CSTRUCT,
 
         AST_OP_NOP,
         AST_OP_PUSH,
@@ -96,6 +112,18 @@ typedef struct tasm_ast{
             struct tasm_ast** lines; // labels, procs, instructions
             size_t line_size;
         } proc;
+
+        // tile c interface
+        struct ast_cfunction {
+            uint8_t ret_type;
+            uint8_t* arg_types;
+            size_t arg_count;
+            const char* name;
+        } cfunction;
+
+        struct ast_cstruct {
+            const char* name;
+        } cstruct;
     };
 
 } tasm_ast_t;
@@ -129,6 +157,9 @@ void tasm_ast_destroy(tasm_ast_t* node) {
             break;
         case AST_PROC:
             arrfree(node->proc.lines);
+            break;
+        case AST_CFUNCTION:
+            arrfree(node->cfunction.arg_types);
             break;
         default:
             break;
@@ -314,6 +345,16 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
                 tasm_ast_show(node->proc.lines[i], indent + 1);
             }
             break;
+
+        case AST_CFUNCTION:
+            printf("CFUNCTION %s: ", node->cfunction.name);
+            printf("%d -> (", node->cfunction.ret_type);
+            for (size_t i = 0; i < node->cfunction.arg_count; i++) {
+                printf("%d, ", node->cfunction.arg_types[i]);
+            }
+            printf(")\n");
+            break;
+        
         default:
             printf("UNKNOWN\n");
             break;

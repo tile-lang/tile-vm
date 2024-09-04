@@ -16,6 +16,12 @@ char* read_file_content(const char* file_name) {
     unsigned int file_size = ftell(src_file);
     fseek(src_file, 0L, SEEK_SET);
 
+    if (file_size == 0) {
+        printf(CLR_RED"File is empty: "CLR_END"%s\n", file_name);
+        fclose(src_file);
+        exit(1);
+    }
+
     char* content = arena_alloc(src_arena, file_size);
 
     char ch = 0;

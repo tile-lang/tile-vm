@@ -41,6 +41,7 @@ tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer);
 tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer);
 
 bool is_id_op(token_type_t type, char* val);
+bool is_id_ctype(token_type_t type, char* val);
 bool isbinprefix(char first, char second);
 bool ishexprefix(char first, char second);
 
@@ -129,6 +130,10 @@ tasm_token_t lexer_collect_one_chars(tasm_lexer_t *lexer) {
     case '\'':
         tasm_lexer_advance(lexer);
         return tasm_token_create(TOKEN_APOST, "'");
+    
+    case '@':
+        tasm_lexer_advance(lexer);
+        return tasm_token_create(TOKEN_AT, "@");
 
     case EOF:
         tasm_lexer_advance(lexer);
@@ -161,6 +166,14 @@ tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
         return tasm_token_create(TOKEN_PROC, val);
     if (strcmp("endp", val) == 0)
         return tasm_token_create(TOKEN_ENDP, val);
+
+    // lex c interface function declerations
+    for (token_type_t i = TOKEN_TCI_BEGIN; i < TOKEN_TCI_END - 1; i++) {
+        if (is_id_ctype(i, val))
+            return tasm_token_create(i + 1, val);
+    }
+    if (strcmp("cfun", val) == 0)
+        return tasm_token_create(TOKEN_CFUNCTION, val);
 
     return token;
 }
@@ -264,6 +277,15 @@ const char* _inst_strings_upper[] = {
     "HLT"
 };
 
+const size_t _tci_ctypes_count = 12;
+
+const char* _tci_ctypes[] = {
+    "u8", "u16", "u32", "u64",
+    "i8", "i16", "i32", "i64",
+    "f32", "f64",
+    "ptr", "void",
+};
+
 bool is_id_op(token_type_t type, char* val) {
     if (strcmp(val,
         _inst_strings_lower[type - INSTRUCTIONS_TOKEN_BEGIN]
@@ -271,6 +293,13 @@ bool is_id_op(token_type_t type, char* val) {
     strcmp(val,
         _inst_strings_upper[type - INSTRUCTIONS_TOKEN_BEGIN]
     ) == 0) {
+        return true;
+    }
+    return false;
+}
+
+bool is_id_ctype(token_type_t type, char* val) {
+    if (strcmp(val, _tci_ctypes[type - TOKEN_TCI_BEGIN]) == 0) {
         return true;
     }
     return false;
