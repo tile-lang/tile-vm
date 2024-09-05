@@ -64,6 +64,7 @@ typedef struct tasm_ast{
         AST_OP_GEF,
         AST_OP_LE,
         AST_OP_LEF,
+        AST_OP_NATIVE,
         AST_OP_HALT,
 
         AST_NUMBER,
@@ -323,6 +324,12 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             break;
         case AST_OP_LEF:
             printf("LEF\n");
+            break;
+        case AST_OP_NATIVE:
+            printf("NATIVE %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
             break;
         case AST_OP_HALT:
             printf("HALT\n");
