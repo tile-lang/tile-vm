@@ -68,6 +68,7 @@ typedef enum {
     TOKEN_OP_GEF,
     TOKEN_OP_LE,
     TOKEN_OP_LEF,
+    TOKEN_OP_NATIVE,
     TOKEN_OP_HALT,
 
     INSTRUCTIONS_TOKEN_END,
