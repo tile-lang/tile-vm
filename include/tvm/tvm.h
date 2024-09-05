@@ -647,13 +647,17 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (inst.operand.ui32 >= native_func_count)
             return EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS;
-        // TODO: implement this in a general way!
-        unsigned long ret;
-        void* vargs[2];
-        vargs[0] = &vm->stack[vm->sp - 2].ui32;
-        vargs[1] = &vm->stack[vm->sp - 1].ui32;
-        tci_native_call(vm, inst.operand.ui32, &ret, vargs);
-        vm->stack[vm->sp].ui32 = ret;
+        unsigned long ret = 0;
+        void* vargs[64];
+        for (size_t i = 0; i < native_func.acount; i++) {
+            vargs[i] = &vm->stack[vm->sp - (native_func.acount - i - 1)].ui32;
+        }
+        if (native_func.rtype == CTYPE_VOID)
+            tci_native_call(vm, inst.operand.ui32, NULL, vargs);
+        else {
+            tci_native_call(vm, inst.operand.ui32, &ret, vargs);
+            vm->stack[vm->sp].ui32 = ret;
+        }
         vm->sp++;
         vm->ip++;
         break;
