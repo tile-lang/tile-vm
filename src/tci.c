@@ -22,18 +22,22 @@ void tci_load_module(tci_t *instance, const char *module_name)
 #ifdef _WIN32
     lib = LoadLibrary(module_name);
     err_str_t last_err = GetLastError();
+    if (!lib) {
+        fprintf(stderr, CLR_RED"Runtime library loading error at "CLR_END"%s: %d\n", module_name, last_err);
+        exit(1);
+    }
 #else
     lib = dlopen(module_name, RTLD_LAZY);
     err_str_t last_err = dlerror();
-#endif
     if (!lib) {
-        fprintf(stderr, CLR_RED"Rutime library loading error at "CLR_END"%s: %s\n", module_name, last_err);
+        fprintf(stderr, CLR_RED"Runtime library loading error at "CLR_END"%s: %s\n", module_name, last_err);
         exit(1);
     }
+#endif
     instance->modules[instance->module_count].handle = lib;
     instance->modules[instance->module_count].name = module_name;
     instance->module_count++;
-    fprintf(stdout, CLR_WHITE"Rutime library loaded "CLR_GREEN"successfully. "CLR_END"%s\n", module_name);
+    fprintf(stdout, CLR_WHITE"Runtime library loaded "CLR_GREEN"successfully. "CLR_END"%s\n", module_name);
 }
 
 cfunptr_t tci_get_cfunction(tci_t* instance, /* TODO: give module name as param */ const char* func_name) {
