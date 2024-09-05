@@ -649,9 +649,12 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS;
         unsigned long ret = 0;
         void* vargs[64];
+        printf("debug: ");
         for (size_t i = 0; i < native_func.acount; i++) {
-            vargs[i] = &vm->stack[vm->sp - (native_func.acount - i - 1)].ui32;
+            printf("%d, ", (native_func.acount - i));
+            vargs[i] = &vm->stack[vm->sp - (native_func.acount - i)].ui32;
         }
+        printf("\n");
         if (native_func.rtype == CTYPE_VOID)
             tci_native_call(vm, inst.operand.ui32, NULL, vargs);
         else {
