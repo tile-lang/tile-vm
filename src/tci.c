@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <common/cmd_colors.h>
 #include <tvm/tci.h>
+#include <string.h>
+#include <stdlib.h>
 
 tci_t tci_instance;
 

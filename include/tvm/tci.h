@@ -19,7 +19,7 @@
 #else
     typedef void* tci_module_handle_t;
     typedef const char* err_str_t;
-    typedef void (__stdcall *cfunptr_t)(void);
+    typedef void (*cfunptr_t)(void);
 #endif
 
 #define TCI_MODULE_CAPACITY 32
