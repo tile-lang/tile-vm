@@ -645,16 +645,15 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         uint32_t native_func_count = vm->program.metadata.cfun_count;
         if (vm->sp < native_func.acount)
             return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
         else if (inst.operand.ui32 >= native_func_count)
             return EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS;
         unsigned long ret = 0;
         void* vargs[64];
-        printf("debug: ");
         for (size_t i = 0; i < native_func.acount; i++) {
-            printf("%d, ", (native_func.acount - i));
             vargs[i] = &vm->stack[vm->sp - (native_func.acount - i)].ui32;
         }
-        printf("\n");
         if (native_func.rtype == CTYPE_VOID)
             tci_native_call(vm, inst.operand.ui32, NULL, vargs);
         else {
