@@ -112,6 +112,9 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             }
             // TODO: implement errors
             break;
+        case AST_OP_POP:
+            program_push(translator, (opcode_t){.type = OP_POP});
+            break;
         case AST_OP_ADD:
             program_push(translator, (opcode_t){.type = OP_ADD});
             break;
@@ -435,6 +438,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             break;
         case AST_OP_NOP:
         case AST_OP_PUSH:
+        case AST_OP_POP:
         case AST_OP_ADD:
         case AST_OP_SUB:
         case AST_OP_MULT:
@@ -524,6 +528,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
             break;
         case AST_OP_NOP:
         case AST_OP_PUSH:
+        case AST_OP_POP:
         case AST_OP_ADD:
         case AST_OP_SUB:
         case AST_OP_MULT:

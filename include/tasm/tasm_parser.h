@@ -380,6 +380,8 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         operand = tasm_parse_push_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_PUSH_WRONG_OPERAND);
         break;
+    case TOKEN_OP_POP: tag = AST_OP_POP;
+        break;
     case TOKEN_OP_ADD: tag = AST_OP_ADD;
         break;
     case TOKEN_OP_SUB: tag = AST_OP_SUB;
