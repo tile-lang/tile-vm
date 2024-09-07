@@ -1,41 +1,71 @@
 cmake_minimum_required(VERSION 3.10)
-project(tile VERSION 2.0)
+project(tile VERSION 0.1)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_GENERATOR_PLATFORM x86)
 
-# include for external
+set(STB_INCLUDE_DIR "extern/stb/include")
+
+if (WIN32)
+    if (MSVC)
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+        set(LIBFFI_INCLUDE_DIR "extern/libffi-msvc/include")
+    else()  # MINGW
+        set(LIBFFI_INCLUDE_DIR "extern/libffi-win32/include")
+    endif()
+else()  # Linux or other platforms
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBFFI REQUIRED libffi)
+    set(LIBFFI_INCLUDE_DIR ${LIBFFI_INCLUDE_DIRS})
+    set(LIBFFI_LIB_DIR ${LIBFFI_LIBRARY_DIRS})
+    set(LIBFFI_LIBS ${LIBFFI_LIBRARIES})
+
+    list(APPEND LIBFFI_LIBS dl)
+endif()
+
+# Include directories
 include_directories(
-    "extern/stb/include"
+    ${STB_INCLUDE_DIR}
+    ${LIBFFI_INCLUDE_DIR}
 )
 
-# linked libs dir
+# Link directories
 link_directories(
+    ${LIBFFI_LIB_DIR}
 )
 
-# linked libs
+# Linked libraries
 set(LINK_LIBS
+    ${LIBFFI_LIBS}
 )
 
-# src for external
+# Source files for external libraries
 file(GLOB EXTERN_SOURCES
 )
 
-# include
+# Include directories for project
 include_directories(
     "include"
 )
 
-# tvm
+# Source files for tvm
 file(GLOB TVM_SOURCES
     "src/tvm.c"
+    "src/tci.c"
 )
 
-# tasm
+# Source files for tasm
 file(GLOB TASM_SOURCES
     "src/tasm.c"
 )
 
-# executable
+# Add executables
 add_executable(tvm ${TVM_SOURCES})
 add_executable(tasm ${TASM_SOURCES})
-# target_link_libraries(xxxx ${LINK_LIBS})
+
+if(MSVC)
+    # target_link_options(tvm PRIVATE "/INCREMENTAL:YES")
+endif()
+
+# Link libraries to tvm
+target_link_libraries(tvm ${LINK_LIBS})

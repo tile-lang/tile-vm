@@ -112,6 +112,9 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             }
             // TODO: implement errors
             break;
+        case AST_OP_POP:
+            program_push(translator, (opcode_t){.type = OP_POP});
+            break;
         case AST_OP_ADD:
             program_push(translator, (opcode_t){.type = OP_ADD});
             break;
@@ -304,6 +307,15 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_NATIVE:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_NATIVE,
+                });
+            }
+            break;
         case AST_OP_HALT:
             program_push(translator, (opcode_t){.type = OP_HALT});
             break;
@@ -426,6 +438,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             break;
         case AST_OP_NOP:
         case AST_OP_PUSH:
+        case AST_OP_POP:
         case AST_OP_ADD:
         case AST_OP_SUB:
         case AST_OP_MULT:
@@ -463,6 +476,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
             break;
@@ -514,6 +528,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
             break;
         case AST_OP_NOP:
         case AST_OP_PUSH:
+        case AST_OP_POP:
         case AST_OP_ADD:
         case AST_OP_SUB:
         case AST_OP_MULT:
@@ -551,6 +566,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.proc_address_pointer++;
             break;

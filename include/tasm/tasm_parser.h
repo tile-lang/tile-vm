@@ -25,6 +25,7 @@
 #define COMPSITE_ERR_JZ_WRONG_OPERAND                  2402
 #define COMPSITE_ERR_JNZ_WRONG_OPERAND                 2502
 #define COMPSITE_ERR_CALL_WRONG_OPERAND                2602
+#define COMPSITE_ERR_NATIVE_WRONG_OPERAND              2702
 #define COMPSITE_ERR_PROC_INSIDE_PROC                  3401
 #define COMPSITE_ERR_CINTERFACE_INSIDE_PROC            3601
 #define COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR           4000
@@ -121,6 +122,9 @@ void tasm_parser_eat_err_msg(int token_type) {
         break;
     case COMPSITE_ERR_CALL_WRONG_OPERAND:
         fprintf(stderr, "COMPSITE_ERR_CALL_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_NATIVE_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_NATIVE_WRONG_OPERAND\n");
         break;
     case COMPSITE_ERR_PROC_INSIDE_PROC:
         fprintf(stderr, "COMPSITE_ERR_PROC_INSIDE_PROC\n");
@@ -376,6 +380,8 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         operand = tasm_parse_push_operand(parser);
         if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_PUSH_WRONG_OPERAND);
         break;
+    case TOKEN_OP_POP: tag = AST_OP_POP;
+        break;
     case TOKEN_OP_ADD: tag = AST_OP_ADD;
         break;
     case TOKEN_OP_SUB: tag = AST_OP_SUB;
@@ -462,6 +468,10 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_LEF: tag = AST_OP_LEF;
         break;
+    case TOKEN_OP_NATIVE: tag = AST_OP_NATIVE;
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_eat(parser, COMPSITE_ERR_NATIVE_WRONG_OPERAND);
+        break;
     case TOKEN_OP_HALT: tag = AST_OP_HALT;
         break;
     default:
@@ -508,7 +518,7 @@ tasm_ast_t* tasm_parse_cfunction(tasm_parser_t* parser) {
 
     uint16_t argcount = 0;
     uint8_t* argtpyes = NULL;
-    for (; parser->current_token.type != TOKEN_ENDLINE && parser->current_token.type != TOKEN_EOF;) {
+    for (; parser->current_token.type != TOKEN_ENDLINE && parser->current_token.type != TOKEN_EOF && parser->current_token.type != TOKEN_COMMENT;) {
         if (!is_token_ctype(parser))
             tasm_parser_eat(parser, COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR);
         arrput(argtpyes, parser->current_token.type - TOKEN_TCI_BEGIN - 1);
