@@ -56,7 +56,8 @@ int main(int argc, char **argv) {
     char* file_name = argv[1];
 
     ast_arena = arena_init(1024);
-    src_arena = arena_init(1024);
+    // FIXME: do not use arena for file reading!!!
+    src_arena = arena_init(4096);
 
     char* content = read_file_content(file_name);
 
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
     tasm_parser_t parser = tasm_parser_init(&lexer);
 
     tasm_ast_t* ast = tasm_parse_file(&parser);
-    // tasm_ast_show(ast, 0);
+    tasm_ast_show(ast, 0);
 
 
     tasm_translator_t translator = tasm_translator_init();

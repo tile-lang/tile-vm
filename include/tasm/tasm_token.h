@@ -31,6 +31,7 @@ typedef enum {
 
     TOKEN_OP_NOP,
     TOKEN_OP_PUSH,
+    TOKEN_OP_POP,
     TOKEN_OP_ADD,
     TOKEN_OP_SUB,
     TOKEN_OP_MULT,

@@ -27,6 +27,7 @@ typedef struct tasm_ast{
 
         AST_OP_NOP,
         AST_OP_PUSH,
+        AST_OP_POP,
         AST_OP_ADD,
         AST_OP_SUB,
         AST_OP_MULT,
@@ -195,6 +196,9 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             if (node->inst.operand) {
                 tasm_ast_show(node->inst.operand, indent + 1);
             }
+            break;
+        case AST_OP_POP:
+            printf("POP\n");
             break;
         case AST_OP_ADD:
             printf("ADD\n");
