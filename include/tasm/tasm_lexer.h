@@ -134,6 +134,10 @@ tasm_token_t lexer_collect_one_chars(tasm_lexer_t *lexer) {
     case '@':
         tasm_lexer_advance(lexer);
         return tasm_token_create(TOKEN_AT, "@");
+    
+    case '-':
+        tasm_lexer_advance(lexer);
+        return tasm_token_create(TOKEN_MINUS, "-");
 
     case EOF:
         tasm_lexer_advance(lexer);
