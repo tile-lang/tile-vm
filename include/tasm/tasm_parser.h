@@ -64,7 +64,7 @@ tasm_ast_t* tasm_parse_label_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser);
-tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative);
 
 bool is_operand_number(tasm_parser_t* parser);
 bool is_operand_char(tasm_parser_t* parser);
@@ -549,24 +549,29 @@ tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser) {
 
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
+    bool negative = false;
+    if (parser->current_token.type == TOKEN_MINUS) {
+        tasm_parser_eat(parser, TOKEN_MINUS);
+        negative = true;
+    }
     if (parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
         parser->current_token.type == TOKEN_FLOAT_NUMBER ||
         parser->current_token.type == TOKEN_HEX_NUMBER ||
         parser->current_token.type == TOKEN_BINARY_NUMBER) {
-        return tasm_parse_num_lit(parser);
+        return tasm_parse_num_lit(parser, negative);
     }
     return NULL;
 }
 
 tasm_ast_t* tasm_parse_int_operand(tasm_parser_t *parser) {
     if (is_operand_int(parser))
-        return tasm_parse_num_lit(parser);
+        return tasm_parse_num_lit(parser, false);
     return NULL;
 }
 
 tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser) {
     if (is_operand_int(parser))
-        return tasm_parse_num_lit(parser);
+        return tasm_parse_num_lit(parser, false);
     if (is_operand_label_call(parser))
         return tasm_parse_label_call(parser);
 
@@ -580,10 +585,10 @@ tasm_ast_t* tasm_parse_label_operand(tasm_parser_t *parser) {
 }
 
 tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser) {
-    if (is_operand_number(parser))
-        return tasm_parse_num_lit(parser);
     if (is_operand_char(parser))
         return tasm_parse_char_lit(parser);
+    
+    return tasm_parse_number_operand(parser);
 
     return NULL;
 }
@@ -600,10 +605,19 @@ tasm_ast_t* tasm_parse_label_call(tasm_parser_t *parser) {
     });
 }
 
-tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser) {
-    const char* text_val = parser->current_token.value;
+tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative) {
+    char* text_val = parser->current_token.value;
     token_type_t type = parser->current_token.type;
-    uint32_t value;
+    int32_t value;
+    
+    if (negative) {
+        size_t size = strlen(parser->current_token.value);
+        text_val = arena_alloc(parser->lexer->tokens_arena, size + 2);
+        memmove(&text_val[1], parser->current_token.value, size);
+        text_val[0] = '-';
+        text_val[size + 1] = '\0';
+    }
+
     switch (type)
     {
     case TOKEN_DECIMAL_NUMBER: {
@@ -636,7 +650,7 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser) {
         .tag = AST_NUMBER,
         .loc = parser->lexer->loc,
         .number.text_value = text_val,
-        .number.value.u32 = value,
+        .number.value.i32 = value,
     });
 }
 

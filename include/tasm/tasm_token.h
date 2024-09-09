@@ -9,6 +9,7 @@ typedef enum {
     TOKEN_COLON,
     TOKEN_APOST,
     TOKEN_AT,
+    TOKEN_MINUS,
     TOKEN_CFUNCTION,
     TOKEN_CSTRUCT,
 
