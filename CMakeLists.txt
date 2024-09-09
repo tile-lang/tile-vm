@@ -10,8 +10,13 @@ if (WIN32)
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(LIBFFI_INCLUDE_DIR "extern/libffi-msvc/include")
+        set(LIBFFI_LIB_DIR "extern/libffi-msvc/lib")
+        set (LIBFFI_LIBS "ffi.lib")
     else()  # MINGW
+        message("LIBFFI: MINGW")
         set(LIBFFI_INCLUDE_DIR "extern/libffi-win32/include")
+        set(LIBFFI_LIB_DIR "extern/libffi-win32/lib")
+        set (LIBFFI_LIBS "libffi")
     endif()
 else()  # Linux or other platforms
     find_package(PkgConfig REQUIRED)
