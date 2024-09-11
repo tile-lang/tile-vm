@@ -307,6 +307,24 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_LOAD:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_LOAD,
+                });
+            }
+            break;
+        case AST_OP_STORE:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_STORE,
+                });
+            }
+            break;
         case AST_OP_NATIVE:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
@@ -476,6 +494,8 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOAD:
+        case AST_OP_STORE:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
@@ -566,6 +586,8 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOAD:
+        case AST_OP_STORE:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.proc_address_pointer++;

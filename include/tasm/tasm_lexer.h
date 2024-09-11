@@ -253,7 +253,7 @@ tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
     return token;
 }
 
-const size_t _inst_strings_count = 42;
+const size_t _inst_strings_count = 44;
 
 const char* _inst_strings_lower[] = {
     "nop", "push", "pop",
@@ -265,6 +265,7 @@ const char* _inst_strings_lower[] = {
     "jmp","jz" ,"jnz", "call", "ret",
     "ci2f", "ci2u", "cf2i", "cf2u", "cu2i", "cu2f",
     "gt", "gtf", "lt", "ltf", "eq", "eqf", "ge", "gef", "le", "lef",
+    "load",  "store",
     "native",
     "hlt"
 };
@@ -279,6 +280,7 @@ const char* _inst_strings_upper[] = {
     "JMP","JZ" ,"JNZ", "CALL", "RET",
     "CI2F", "CI2U", "CF2I", "CF2U", "CU2I", "CU2F",
     "GT", "GTF", "LT", "LTF", "EQ", "EQF", "GE", "GEF", "LE", "LEF",
+    "LOAD",  "STORE",
     "NATIVE",
     "HLT"
 };
