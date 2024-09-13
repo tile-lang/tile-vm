@@ -144,6 +144,7 @@ tasm_token_t lexer_collect_one_chars(tasm_lexer_t *lexer) {
         return tasm_token_create(TOKEN_EOF, "eof");
 
     default:
+        tasm_lexer_advance(lexer);
         return tasm_token_create(TOKEN_NONE, NULL);
     }
 }

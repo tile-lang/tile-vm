@@ -56,7 +56,7 @@ void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translator_generate_bin(tasm_translator_t* translator);
 void symbol_dump(tasm_translator_t* translator);
-bool is_err(tasm_translator_t* translator);
+bool tasm_translator_is_err(tasm_translator_t* translator);
 
 
 #ifdef TASM_TRANSLATOR_IMPLEMENTATION
@@ -712,7 +712,7 @@ void symbol_dump(tasm_translator_t *translator) {
     
 }
 
-bool is_err(tasm_translator_t* translator) {
+bool tasm_translator_is_err(tasm_translator_t* translator) {
     return translator->symbols.err;
 }
 
