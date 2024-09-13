@@ -4,6 +4,7 @@
 #include <tasm/tasm_lexer.h>
 #include <tasm/tasm_ast.h>
 #include <common/cmd_colors.h>
+#include <stdarg.h>
 
 /*
     this err codes are between 1000 - 10000
@@ -36,16 +37,23 @@
 #define COMPSITE_ERR_PROC_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE  5101
 
 typedef struct {
+    bool proc_return_warning;
+} tasm_parser_warnings_t;
+
+typedef struct {
     tasm_token_t current_token;
     tasm_token_t prev_token;
     tasm_token_t next_token;
     tasm_lexer_t* lexer;
+
+    tasm_parser_warnings_t warnings;
 } tasm_parser_t;
 
 tasm_parser_t tasm_parser_init(tasm_lexer_t* lexer);
 void tasm_parser_destroy(tasm_parser_t* parser);
 
 void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type);
+void tasm_parser_warn(tasm_parser_t *parser, const char *format, ...);
 
 tasm_ast_t* tasm_parse_file(tasm_parser_t *parser);
 tasm_ast_t* tasm_parse_line(tasm_parser_t *parser);
@@ -85,6 +93,10 @@ tasm_parser_t tasm_parser_init(tasm_lexer_t* lexer) {
         .current_token = tasm_token_create(TOKEN_NONE, NULL),
         .prev_token = tasm_token_create(TOKEN_NONE, NULL),
         .next_token = tasm_lexer_get_next_token(lexer),
+
+        .warnings = {
+            .proc_return_warning = true,
+        },
     };
     return parser;
 }
@@ -177,6 +189,23 @@ void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
         parser->current_token = parser->next_token;
         parser->next_token = tasm_lexer_get_next_token(parser->lexer);
     }
+}
+
+void tasm_parser_warn(tasm_parser_t *parser, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    printf(
+        "%s:%d:%d:" CLR_YELLOW "Warning:" CLR_END,
+        parser->lexer->loc.file_name,
+        parser->lexer->loc.row,
+        parser->lexer->loc.col
+    );
+
+    vprintf(format, args);
+    printf("\n");
+
+    va_end(args);
 }
 
 tasm_ast_t* tasm_parse_file(tasm_parser_t* parser) {
@@ -324,12 +353,20 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
     tasm_ast_t** lines = NULL;
     while (parser->current_token.type != TOKEN_ENDP) {
         tasm_ast_t* line = tasm_parse_proc_line(parser);
-        if (line != NULL)
+        if (line != NULL) {
+            if (line->tag == AST_OP_RET)
+                parser->warnings.proc_return_warning = false;
             arrput(lines, line);
+        }
         if (parser->current_token.type == TOKEN_EOF)
             tasm_parser_eat(parser, TOKEN_ENDP);
     }
     tasm_parser_eat(parser, TOKEN_ENDP);
+
+    if (parser->warnings.proc_return_warning)
+        tasm_parser_warn(parser, "procedure:" CLR_PINK"%s"CLR_END " there is no ret opcode. It may cause possible unpredicted behaivours", proc_name);
+    parser->warnings.proc_return_warning = true;
+
     tasm_ast_t* ast_proc = tasm_ast_create((tasm_ast_t) {
         .tag = AST_PROC,
         .loc = loc,
