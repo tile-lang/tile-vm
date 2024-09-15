@@ -73,11 +73,21 @@ int main(int argc, char **argv) {
     //     t = tasm_lexer_get_next_token(&lexer);
     //     printf("%d:%d: TOKEN(%s : %d)\n", r, c, t.value, t.type);
     // }
+    // exit(EXIT_FAILURE);
     
     tasm_parser_t parser = tasm_parser_init(&lexer);
 
     tasm_ast_t* ast = tasm_parse_file(&parser);
-    tasm_ast_show(ast, 0);
+    // TODO: set a flag option to decide user if there is an error on parsing continue or exit
+    // if (tasm_parser_is_err(&parser)) {
+    //     tasm_parser_destroy(&parser);
+    //     tasm_ast_destroy(ast);
+    //     arena_destroy(ast_arena);
+    //     arena_destroy(src_arena);
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // tasm_ast_show(ast, 0);
 
 
     tasm_translator_t translator = tasm_translator_init();
@@ -89,7 +99,7 @@ int main(int argc, char **argv) {
     // symbol_dump(&translator);
 
     tasm_translate_unit(&translator, ast);
-    if (!is_err(&translator))
+    if (!tasm_translator_is_err(&translator))
         tasm_translator_generate_bin(&translator);
     
     tasm_translator_destroy(&translator);

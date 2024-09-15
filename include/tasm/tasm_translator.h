@@ -56,7 +56,7 @@ void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translator_generate_bin(tasm_translator_t* translator);
 void symbol_dump(tasm_translator_t* translator);
-bool is_err(tasm_translator_t* translator);
+bool tasm_translator_is_err(tasm_translator_t* translator);
 
 
 #ifdef TASM_TRANSLATOR_IMPLEMENTATION
@@ -307,6 +307,24 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_LOAD:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_LOAD,
+                });
+            }
+            break;
+        case AST_OP_STORE:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_STORE,
+                });
+            }
+            break;
         case AST_OP_NATIVE:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
@@ -476,6 +494,8 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOAD:
+        case AST_OP_STORE:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
@@ -566,6 +586,8 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOAD:
+        case AST_OP_STORE:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.proc_address_pointer++;
@@ -690,7 +712,7 @@ void symbol_dump(tasm_translator_t *translator) {
     
 }
 
-bool is_err(tasm_translator_t* translator) {
+bool tasm_translator_is_err(tasm_translator_t* translator) {
     return translator->symbols.err;
 }
 
