@@ -30,7 +30,7 @@
 #define COMPSITE_ERR_STORE_WRONG_OPERAND               2802
 #define COMPSITE_ERR_NATIVE_WRONG_OPERAND              2902
 #define COMPSITE_ERR_PROC_INSIDE_PROC                  3401
-#define COMPSITE_ERR_CINTERFACE_INSIDE_PROC            3601
+#define COMPSITE_ERR_META_INSIDE_PROC            3601
 #define COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR           4000
 #define COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR           4100
 #define COMPSITE_ERR_FILE_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE  5100
@@ -70,6 +70,8 @@ tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_cfunction(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser);
 
+tasm_ast_t* tasm_parse_data(tasm_parser_t* parser);
+
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_int_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser);
@@ -77,6 +79,7 @@ tasm_ast_t* tasm_parse_label_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_str_lit(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative);
 
 bool tasm_parser_is_err(tasm_parser_t* parser);
@@ -155,8 +158,8 @@ void tasm_parser_eat_err_msg(int token_type) {
     case COMPSITE_ERR_PROC_INSIDE_PROC:
         fprintf(stderr, "COMPSITE_ERR_PROC_INSIDE_PROC\n");
         break;
-    case COMPSITE_ERR_CINTERFACE_INSIDE_PROC:
-        fprintf(stderr, "COMPSITE_ERR_CINTERFACE_INSIDE_PROC\n");
+    case COMPSITE_ERR_META_INSIDE_PROC:
+        fprintf(stderr, "COMPSITE_ERR_META_INSIDE_PROC\n");
         break;
     case COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR:
         fprintf(stderr, "COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR\n");
@@ -297,7 +300,7 @@ bool is_line_instruction(tasm_parser_t* parser) {
     return false;
 }
 
-bool is_line_cinterface(tasm_parser_t* parser) {
+bool is_line_meta(tasm_parser_t* parser) {
     if (parser->current_token.type == TOKEN_AT)
         return true;
     return false;
@@ -325,16 +328,19 @@ tasm_ast_t* tasm_parse_line(tasm_parser_t* parser) {
         return tasm_parse_proc(parser);
     if (is_line_instruction(parser))
         return tasm_parse_instruction(parser);
-    if (is_line_cinterface(parser))
+    if (is_line_meta(parser))
         return tasm_parse_metadata(parser);
 
     if (parser->current_token.type == TOKEN_ID ||
+        parser->current_token.type == TOKEN_STRING ||
+        parser->current_token.type == TOKEN_CHAR ||
         parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
         parser->current_token.type == TOKEN_HEX_NUMBER ||
         parser->current_token.type == TOKEN_FLOAT_NUMBER ||
         parser->current_token.type == TOKEN_BINARY_NUMBER ||
         parser->current_token.type == TOKEN_COLON ||
         parser->current_token.type == TOKEN_APOST ||
+        parser->current_token.type == TOKEN_QUOTA ||
         parser->current_token.type == TOKEN_NONE)
         tasm_parser_err(parser, COMPSITE_ERR_FILE_LINE_UNEXPECTED_ID_OR_NUMBER_OR_SYMBOL, "Unexpected identifier or number or symbol");
 
@@ -360,16 +366,19 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
         return tasm_parse_instruction(parser);
     if (is_line_proc(parser))
         tasm_parser_err(parser, COMPSITE_ERR_PROC_INSIDE_PROC, "A proc cannot be defined in anothe proc");
-    if (is_line_cinterface(parser))
-        tasm_parser_err(parser, COMPSITE_ERR_CINTERFACE_INSIDE_PROC, "C interface decleration must be declared at global scope");
+    if (is_line_meta(parser))
+        tasm_parser_err(parser, COMPSITE_ERR_META_INSIDE_PROC, "Meta decleration must be declared at global scope");
 
     if (parser->current_token.type == TOKEN_ID ||
+        parser->current_token.type == TOKEN_STRING ||
+        parser->current_token.type == TOKEN_CHAR ||
         parser->current_token.type == TOKEN_DECIMAL_NUMBER ||
         parser->current_token.type == TOKEN_HEX_NUMBER ||
         parser->current_token.type == TOKEN_FLOAT_NUMBER ||
         parser->current_token.type == TOKEN_BINARY_NUMBER ||
         parser->current_token.type == TOKEN_COLON ||
         parser->current_token.type == TOKEN_APOST ||
+        parser->current_token.type == TOKEN_QUOTA ||
         parser->current_token.type == TOKEN_NONE)
         tasm_parser_err(parser, COMPSITE_ERR_PROC_LINE_UNEXPECTED_ID_OR_NUMBER_OR_SYMBOL, "Unexpected identifier or number or symbol");
 
@@ -606,6 +615,8 @@ tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser) {
         return tasm_parse_cfunction(parser);
     if (parser->current_token.type == TOKEN_CSTRUCT)
         return tasm_parse_cstruct(parser);
+    if (parser->current_token.type == TOKEN_DATA)
+        return tasm_parse_data(parser);
     
     tasm_parser_eat(parser, 8000);
     return NULL;
@@ -648,12 +659,30 @@ tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser) {
     const loc_t loc = parser->lexer->loc;
 
     return tasm_ast_create((tasm_ast_t) {
-        .tag = AST_CFUNCTION,
+        .tag = AST_CSTRUCT,
         .loc = loc,
         .cstruct.name = "cstruct",
     });
 }
 
+tasm_ast_t* tasm_parse_data(tasm_parser_t *parser) {
+    tasm_parser_eat(parser, TOKEN_DATA);
+    const loc_t loc = parser->lexer->loc;
+
+    tasm_ast_t* value = NULL;
+    if (parser->current_token.type == TOKEN_QUOTA)
+        value = tasm_parse_str_lit(parser);
+    else if (parser->current_token.type == TOKEN_APOST)
+        value = tasm_parse_char_lit(parser);
+    else
+        value = tasm_parse_number_operand(parser);
+
+    return tasm_ast_create((tasm_ast_t) {
+        .tag = AST_DATA,
+        .loc = loc,
+        .data.value = value,
+    });
+}
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
     bool negative = false;
@@ -768,7 +797,7 @@ bool tasm_parser_is_err(tasm_parser_t* parser) {
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser) {
     tasm_parser_eat(parser, TOKEN_APOST);
     const char* val = parser->current_token.value;
-    tasm_parser_eat(parser, TOKEN_ID);
+    tasm_parser_eat(parser, TOKEN_CHAR);
     tasm_parser_eat(parser, TOKEN_APOST);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_CHAR,
@@ -777,6 +806,19 @@ tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser) {
     });
 }
 
+tasm_ast_t *tasm_parse_str_lit(tasm_parser_t *parser) {
+    tasm_parser_eat(parser, TOKEN_QUOTA);
+    const char* val = parser->current_token.value;
+    tasm_parser_eat(parser, TOKEN_STRING);
+    tasm_parser_eat(parser, TOKEN_QUOTA);
+
+    return tasm_ast_create((tasm_ast_t) {
+        .tag = AST_STRING,
+        .loc = parser->lexer->loc,
+        .string.value = val,
+        .string.length = strlen(val),
+    });
+}
 
 #endif//TASM_PARSER_IMPLEMENTATION
 

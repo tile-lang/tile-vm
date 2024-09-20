@@ -36,6 +36,8 @@ tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer);
 tasm_token_t lexer_collect_one_chars(tasm_lexer_t* lexer);
 
 tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer);
+tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer);
+tasm_token_t tasm_lexer_collect_char(tasm_lexer_t *lexer);
 tasm_token_t tasm_lexer_collect_number(tasm_lexer_t *lexer);
 tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer);
 tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer);
@@ -97,8 +99,13 @@ void tasm_lexer_skip_line(tasm_lexer_t* lexer) {
 }
 
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
+    if (lexer->prev_char == '"' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
+        return tasm_lexer_collect_str(lexer);
+    
     tasm_lexer_skip_whitespace(lexer);
 
+    if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
+        return tasm_lexer_collect_char(lexer);
     if (isalpha(lexer->current_char) || lexer->current_char == '_')
         return tasm_lexer_collect_id(lexer);
     if (isbinprefix(lexer->current_char, lexer->next_char))
@@ -130,6 +137,10 @@ tasm_token_t lexer_collect_one_chars(tasm_lexer_t *lexer) {
     case '\'':
         tasm_lexer_advance(lexer);
         return tasm_token_create(TOKEN_APOST, "'");
+
+    case '"':
+        tasm_lexer_advance(lexer);
+        return tasm_token_create(TOKEN_QUOTA, "\"");
     
     case '@':
         tasm_lexer_advance(lexer);
@@ -179,7 +190,44 @@ tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
     }
     if (strcmp("cfun", val) == 0)
         return tasm_token_create(TOKEN_CFUNCTION, val);
+    if (strcmp("data", val) == 0)
+        return tasm_token_create(TOKEN_DATA, val);
 
+    return token;
+}
+
+tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
+    size_t len = 0;
+    char temp_val[128];
+    // tasm_lexer_advance(lexer);
+    while (lexer->current_char != '"') {
+        temp_val[len] = lexer->current_char;
+        len++;
+        tasm_lexer_advance(lexer);
+    }
+    // tasm_lexer_advance(lexer);
+    temp_val[len] = '\0';
+    len++;
+    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    memmove(val, temp_val, len);
+    tasm_token_t token = tasm_token_create(TOKEN_STRING, val);
+    return token;
+}
+
+tasm_token_t tasm_lexer_collect_char(tasm_lexer_t *lexer) {
+    char temp_val[2];
+    temp_val[0] = lexer->current_char;
+    temp_val[1] = '\0';
+    
+    tasm_lexer_advance(lexer);
+    if (lexer->current_char != '\'') {
+        tasm_lexer_advance(lexer);
+        return tasm_token_create(TOKEN_NONE, NULL);
+    }
+
+    char* val = (char*)arena_alloc(lexer->tokens_arena, 2);
+    memmove(val, temp_val, 2);
+    tasm_token_t token = tasm_token_create(TOKEN_CHAR, val);
     return token;
 }
 

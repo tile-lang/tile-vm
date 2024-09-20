@@ -78,16 +78,16 @@ int main(int argc, char **argv) {
     tasm_parser_t parser = tasm_parser_init(&lexer);
 
     tasm_ast_t* ast = tasm_parse_file(&parser);
-    // TODO: set a flag option to decide user if there is an error on parsing continue or exit
-    // if (tasm_parser_is_err(&parser)) {
-    //     tasm_parser_destroy(&parser);
-    //     tasm_ast_destroy(ast);
-    //     arena_destroy(ast_arena);
-    //     arena_destroy(src_arena);
-    //     exit(EXIT_FAILURE);
-    // }
 
-    // tasm_ast_show(ast, 0);
+    if (tasm_parser_is_err(&parser)) {
+        tasm_parser_destroy(&parser);
+        tasm_ast_destroy(ast);
+        arena_destroy(ast_arena);
+        arena_destroy(src_arena);
+        exit(EXIT_FAILURE);
+    }
+
+    tasm_ast_show(ast, 0);
 
 
     tasm_translator_t translator = tasm_translator_init();
