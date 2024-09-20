@@ -70,6 +70,8 @@ tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_cfunction(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser);
 
+tasm_ast_t* tasm_parse_data(tasm_parser_t* parser);
+
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_int_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_jmp_operand(tasm_parser_t* parser);
@@ -77,6 +79,7 @@ tasm_ast_t* tasm_parse_label_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_push_operand(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_label_call(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser);
+tasm_ast_t* tasm_parse_str_lit(tasm_parser_t* parser);
 tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative);
 
 bool tasm_parser_is_err(tasm_parser_t* parser);
@@ -606,6 +609,8 @@ tasm_ast_t* tasm_parse_metadata(tasm_parser_t* parser) {
         return tasm_parse_cfunction(parser);
     if (parser->current_token.type == TOKEN_CSTRUCT)
         return tasm_parse_cstruct(parser);
+    if (parser->current_token.type == TOKEN_DATA)
+        return tasm_parse_data(parser);
     
     tasm_parser_eat(parser, 8000);
     return NULL;
@@ -648,12 +653,30 @@ tasm_ast_t* tasm_parse_cstruct(tasm_parser_t* parser) {
     const loc_t loc = parser->lexer->loc;
 
     return tasm_ast_create((tasm_ast_t) {
-        .tag = AST_CFUNCTION,
+        .tag = AST_CSTRUCT,
         .loc = loc,
         .cstruct.name = "cstruct",
     });
 }
 
+tasm_ast_t* tasm_parse_data(tasm_parser_t *parser) {
+    tasm_parser_eat(parser, TOKEN_DATA);
+    const loc_t loc = parser->lexer->loc;
+
+    tasm_ast_t* value = NULL;
+    if (parser->current_token.type == TOKEN_QUOTA)
+        value = tasm_parse_str_lit(parser);
+    else if (parser->current_token.type == TOKEN_APOST)
+        value = tasm_parse_char_lit(parser);
+    else
+        value = tasm_parse_number_operand(parser);
+
+    return tasm_ast_create((tasm_ast_t) {
+        .tag = AST_DATA,
+        .loc = loc,
+        .data.value = value,
+    });
+}
 
 tasm_ast_t* tasm_parse_number_operand(tasm_parser_t *parser) {
     bool negative = false;
@@ -768,7 +791,7 @@ bool tasm_parser_is_err(tasm_parser_t* parser) {
 tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser) {
     tasm_parser_eat(parser, TOKEN_APOST);
     const char* val = parser->current_token.value;
-    tasm_parser_eat(parser, TOKEN_ID);
+    tasm_parser_eat(parser, TOKEN_CHAR);
     tasm_parser_eat(parser, TOKEN_APOST);
     return tasm_ast_create((tasm_ast_t) {
         .tag = AST_CHAR,
@@ -777,6 +800,19 @@ tasm_ast_t* tasm_parse_char_lit(tasm_parser_t* parser) {
     });
 }
 
+tasm_ast_t *tasm_parse_str_lit(tasm_parser_t *parser) {
+    tasm_parser_eat(parser, TOKEN_QUOTA);
+    const char* val = parser->current_token.value;
+    tasm_parser_eat(parser, TOKEN_STRING);
+    tasm_parser_eat(parser, TOKEN_QUOTA);
+
+    return tasm_ast_create((tasm_ast_t) {
+        .tag = AST_STRING,
+        .loc = parser->lexer->loc,
+        .string.value = val,
+        .string.length = strlen(val),
+    });
+}
 
 #endif//TASM_PARSER_IMPLEMENTATION
 

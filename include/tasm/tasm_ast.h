@@ -24,6 +24,7 @@ typedef struct tasm_ast{
 
         AST_CFUNCTION,
         AST_CSTRUCT,
+        AST_DATA,
 
         AST_OP_NOP,
         AST_OP_PUSH,
@@ -70,12 +71,12 @@ typedef struct tasm_ast{
         AST_OP_NATIVE,
         AST_OP_HALT,
 
+        AST_STRING,
         AST_NUMBER,
         AST_CHAR,
         AST_LABEL_DECL,
         AST_LABEL_CALL,
         AST_PROC,
-        // AST_STRING,
     } tag;
 
     loc_t loc;
@@ -101,6 +102,11 @@ typedef struct tasm_ast{
         struct ast_char {
             const char* value;
         } character;
+
+        struct ast_string {
+            const char* value;
+            size_t length;
+        } string;
 
         struct ast_number {
             const char* text_value;
@@ -128,6 +134,10 @@ typedef struct tasm_ast{
         struct ast_cstruct {
             const char* name;
         } cstruct;
+
+        struct ast_data {
+            struct tasm_ast* value;
+        } data;
     };
 
 } tasm_ast_t;
@@ -358,6 +368,9 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
         case AST_CHAR:
             printf("CHAR: %s\n", node->character.value);
             break;
+        case AST_STRING:
+            printf("STRING: \"%s\" length: %d\n", node->string.value, node->string.length);
+            break;
         case AST_LABEL_DECL:
             printf("LABEL DECL: %s\n", node->label_decl.name);
             break;
@@ -371,6 +384,12 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             }
             break;
 
+        case AST_DATA:
+            printf("DATA\n");
+            tasm_ast_show(node->data.value, indent + 1);
+            break;
+        case AST_CSTRUCT:
+            break;
         case AST_CFUNCTION:
             printf("CFUNCTION %s: ", node->cfunction.name);
             printf("%d -> (", node->cfunction.ret_type);
