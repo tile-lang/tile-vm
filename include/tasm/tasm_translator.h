@@ -54,6 +54,7 @@ static size_t get_addr_from_label_call_symbol(tasm_translator_t* translator, con
 static size_t get_addr_from_proc_decl_symbol(tasm_translator_t* translator, const char* name);
 void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node);
+void tasm_translate_data(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translator_generate_bin(tasm_translator_t* translator);
 void symbol_dump(tasm_translator_t* translator);
 bool tasm_translator_is_err(tasm_translator_t* translator);
@@ -337,8 +338,8 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_HALT:
             program_push(translator, (opcode_t){.type = OP_HALT});
             break;
+        case AST_STRING:
         case AST_NUMBER:
-            break;
         case AST_CHAR:
             break;
         case AST_LABEL_CALL: {
@@ -381,6 +382,9 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_CSTRUCT:
             tasm_translate_cstruct(translator, node);
             break;
+        case AST_DATA:
+            tasm_translate_data(translator, node);
+            break;
         default:
             // fprintf(stderr, "unimplemented ast! %d\n", node->tag);
             break;
@@ -398,6 +402,12 @@ void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node) {
 }
 
 void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node) {
+    UNUSED_VAR(translator);
+    UNUSED_VAR(node);
+    // TODO: implement this
+}
+
+void tasm_translate_data(tasm_translator_t *translator, tasm_ast_t *node) {
     UNUSED_VAR(translator);
     UNUSED_VAR(node);
     // TODO: implement this
