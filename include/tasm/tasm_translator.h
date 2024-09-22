@@ -102,12 +102,14 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_PUSH,
                 });
             } else if (node->inst.operand->tag == AST_CHAR) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_CHARACTER,
                     .operand.ui32 = (uint32_t)node->inst.operand->character.value[0],
                     .type = OP_PUSH,
                 });
@@ -133,6 +135,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_CLN,
                 });
@@ -142,6 +145,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_SWAP,
                 });
@@ -181,6 +185,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_JMP,
                 });
@@ -194,6 +199,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_JMP,
                 });
@@ -203,6 +209,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_JZ,
                 });
@@ -216,6 +223,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_JZ,
                 });
@@ -225,6 +233,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_JNZ,
                 });
@@ -238,6 +247,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_JNZ,
                 });
@@ -253,6 +263,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_CALL,
                 });
@@ -309,10 +320,31 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_LOADC:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_LOADC,
+                });
+            }
+            break;
+        case AST_OP_ALOADC:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_DATA_ADDRESS,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_ALOADC,
+                });
+            }
+            break;
         case AST_OP_LOAD:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_LOAD,
                 });
@@ -322,15 +354,20 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_STORE,
                 });
             }
             break;
+        case AST_OP_PUTS:
+            program_push(translator, (opcode_t){.type = OP_PUTS});
+            break;
         case AST_OP_NATIVE:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_NATIVE,
                 });
@@ -534,8 +571,11 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOADC:
+        case AST_OP_ALOADC:
         case AST_OP_LOAD:
         case AST_OP_STORE:
+        case AST_OP_PUTS:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
@@ -626,8 +666,11 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOADC:
+        case AST_OP_ALOADC:
         case AST_OP_LOAD:
         case AST_OP_STORE:
+        case AST_OP_PUTS:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.proc_address_pointer++;

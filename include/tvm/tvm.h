@@ -24,6 +24,8 @@ typedef enum {
     EXCEPT_INVALID_INSTRUCTION,
     EXCEPT_INVALID_INSTRUCTION_ACCESS,
     EXCEPT_INVALID_LOCAL_VAR_ACCESS,
+    EXCEPT_INVALID_CONSTANT_ACCESS,
+    EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS,
     EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS,
     EXCEPT_INVALID_STACK_ACCESS,
     EXCEPT_DIVISION_BY_ZERO,
@@ -76,28 +78,38 @@ typedef enum {
     OP_LE,
     OP_LEF,
     /* load store */
-    OP_LOAD, // load to stack
-    OP_STORE, // store to local variable
+    OP_LOADC,  // load constant to stack
+    OP_ALOADC, // load address of constant to stack
+    OP_LOAD,   // load to stack
+    OP_STORE,  // store to local variable
+    /* print to standart output */
+    OP_PUTS,
     /* native */
     OP_NATIVE,
     /* halt */
     OP_HALT // termination
 } optype_t;
 
+typedef enum {
+    STACK_OBJ_NO_OPERAND,
+    STACK_OBJ_TYPE_DATA_ADDRESS,
+    STACK_OBJ_TYPE_VM_ADDRESS,
+    STACK_OBJ_TYPE_NUMBER,
+    STACK_OBJ_TYPE_CHARACTER,
+} stack_obj_type_t;
+
 typedef struct {
-    enum {
-        OBJECT_TYPE_ADDRESS,
-        OBJECT_TYPE_NUMBER,
-    } type;
+    uint8_t type; //stack_obj_type_t
     union {
-        uint32_t ui32; // usually for addresses
+        intptr_t ui64; // usually for addresses
+        uint32_t ui32;
         int32_t  i32;
         float    f32;
     };
 } object_t;
 
 typedef struct {
-    optype_t type;
+    uint8_t type; //optype_t
     object_t operand;
 } opcode_t;
 
@@ -305,6 +317,10 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
     case EXCEPT_INVALID_LOCAL_VAR_ACCESS:
         return "EXCEPT_INVALID_LOCAL_VAR_ACCESS";
+    case EXCEPT_INVALID_CONSTANT_ACCESS:
+        return "EXCEPT_INVALID_CONSTANT_ACCESS";
+    case EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS:
+        return "EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS";
     case EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS:
         return "EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS";
     case EXCEPT_INVALID_STACK_ACCESS:
@@ -350,7 +366,7 @@ void tvm_destroy(tvm_t* vm) {
 exception_t tvm_exec_opcode(tvm_t* vm) {
     opcode_t inst = vm->program.code[vm->ip];
     // printf("inst: %d\n", inst.type);
-    tvm_stack_dump(vm);
+    // tvm_stack_dump(vm);
     switch (inst.type) {
     case OP_NOP:
         /* no operation */
@@ -676,6 +692,22 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp--;
         vm->ip++;
         break;
+    case OP_LOADC:
+        if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (inst.operand.ui32 >= vm->program.const_table.referance_count)
+            return EXCEPT_INVALID_CONSTANT_ACCESS;
+        vm->stack[vm->sp++].ui32 = *(uint32_t*)&vm->program.const_table.data[vm->program.const_table.referances[inst.operand.ui32]];
+        vm->ip++;
+        break;
+    case OP_ALOADC:
+        if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (inst.operand.ui32 >= vm->program.const_table.referance_count)
+            return EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS;
+        vm->stack[vm->sp++].ui64 = (intptr_t)&vm->program.const_table.data[vm->program.const_table.referances[inst.operand.ui32]];
+        vm->ip++;
+        break;
     case OP_LOAD:
         if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
@@ -690,6 +722,12 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         if (inst.operand.ui32 >= TVM_MAX_LOCAL_VAR)
             return EXCEPT_INVALID_LOCAL_VAR_ACCESS;
         vm->frame->local_vars[inst.operand.ui32] = vm->stack[--vm->sp];
+        vm->ip++;
+        break;
+    case OP_PUTS:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        fputs((const char*)vm->stack[--vm->sp].ui64, stdout);
         vm->ip++;
         break;
     case OP_NATIVE: {
