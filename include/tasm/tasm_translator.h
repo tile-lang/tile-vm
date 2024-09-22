@@ -70,6 +70,7 @@ tasm_translator_t tasm_translator_init() {
                 .hour = 0,
                 .cfuns = {0},
             },
+            .const_table = {0},
             .code = {0},
             .size = 0,
             .program_arena = NULL,
@@ -408,9 +409,38 @@ void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node) {
 }
 
 void tasm_translate_data(tasm_translator_t *translator, tasm_ast_t *node) {
-    UNUSED_VAR(translator);
-    UNUSED_VAR(node);
-    // TODO: implement this
+    static size_t beginning_address = 0;
+    // if (translator->program.const_table.referance_count <= 0)
+
+    switch (node->data.value->tag)
+    {
+    case AST_STRING: {
+        size_t len = node->data.value->string.length;
+        arrput(translator->program.const_table.referances, beginning_address);
+        uint8_t* begin = arraddnptr(translator->program.const_table.data, len);
+        memmove(begin, node->data.value->string.value, len);
+        beginning_address += len;
+        break;
+    }
+    case AST_NUMBER: {
+        size_t len = sizeof(uint32_t);
+        arrput(translator->program.const_table.referances, beginning_address);
+        uint8_t* begin = arraddnptr(translator->program.const_table.data, len);
+        memmove(begin, (uint8_t*)&node->data.value->number.value.u32, len);
+        beginning_address += len;
+        break;
+    }
+    case AST_CHAR: {
+        arrput(translator->program.const_table.referances, beginning_address);
+        arrput(translator->program.const_table.data, node->character.value[0]);
+        beginning_address += 1;
+        break;
+    }    
+    default:
+        break;
+    }
+    translator->program.const_table.referance_count++;
+    translator->program.const_table.data_size = beginning_address;
 }
 
 static void tasm_translate_proc_and_line(tasm_translator_t *translator, tasm_ast_t *node) {
@@ -677,6 +707,7 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
 //    ...
 //    .CODE
 //    ...
+//    .DATA
     
     {
         uint32_t fun_count = translator->program.metadata.cfun_count;
@@ -696,8 +727,20 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
                 fwrite(&atype, sizeof(atype), 1, file);
             }
         }
-        fwrite(translator->program.code, sizeof(translator->program.code[0]), translator->program.size, file);
     }
+    {
+        size_t elem_len = 0;
+        if (translator->program.const_table.referance_count > 0)
+            elem_len = translator->program.const_table.data_size;
+        fwrite(&translator->program.const_table.referance_count, sizeof(size_t), 1, file);
+        fwrite(&translator->program.const_table.data_size, sizeof(size_t), 1, file);
+        if (translator->program.const_table.referance_count > 0) {
+            fwrite(translator->program.const_table.referances, sizeof(size_t), translator->program.const_table.referance_count, file);
+            fwrite(translator->program.const_table.data, sizeof(uint8_t), elem_len, file);
+        }
+    }
+    
+    fwrite(translator->program.code, sizeof(translator->program.code[0]), translator->program.size, file);
 
     fclose(file);
     fprintf(stdout, "out.bin created "CLR_GREEN"successfully."CLR_END"\n");

@@ -137,7 +137,15 @@ typedef struct {
 } tvm_program_metadata_t;
 
 typedef struct {
+    size_t* referances;
+    size_t referance_count;
+    uint8_t* data;
+    size_t data_size;
+} tvm_const_table;
+
+typedef struct {
     tvm_program_metadata_t metadata;
+    tvm_const_table const_table;
     opcode_t code[TVM_PROGRAM_CAPACITY];
     size_t size;
     arena_t* program_arena;
@@ -248,9 +256,30 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             vm->program.metadata.cfuns[i].atypes = atypes;
         }
     }
+    {
+        size_t referance_count;
+        fread(&referance_count, sizeof(size_t), 1, file);
+        byte_size -= sizeof(size_t);
+        size_t data_size;
+        fread(&data_size, sizeof(size_t), 1, file);
+        byte_size -= sizeof(size_t);
+        if (referance_count > 0) {
+            size_t* referances = arena_alloc(vm->program.program_arena, sizeof(size_t) * referance_count);
+            fread(referances, sizeof(size_t), referance_count, file);
+            byte_size -= sizeof(size_t) * referance_count;
+
+            uint8_t* data = arena_alloc(vm->program.program_arena, data_size);
+            fread(data, sizeof(uint8_t), data_size, file);
+            byte_size -= sizeof(uint8_t) * data_size;
+
+            vm->program.const_table.referances = referances;
+            vm->program.const_table.data = data;
+        }
+        vm->program.const_table.referance_count = referance_count;
+        vm->program.const_table.data_size = data_size;
+    }
     vm->program.size = byte_size/opcode_size;
     fread(vm->program.code, opcode_size, vm->program.size, file);
-    
     fclose(file);
 }
 
@@ -302,6 +331,7 @@ tvm_t tvm_init() {
                 .hour = 0,
                 .cfuns = {0},
             },
+            .const_table = {0},
             .code = {0},
             .size = 0,
             .program_arena = arena_init(1024),
