@@ -761,7 +761,7 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative) {
     
     if (negative) {
         size_t size = strlen(parser->current_token.value);
-        text_val = arena_alloc(parser->lexer->tokens_arena, size + 2);
+        text_val = arena_alloc(&parser->lexer->tokens_arena, size + 2);
         memmove(&text_val[1], parser->current_token.value, size);
         text_val[0] = '-';
         text_val[size + 1] = '\0';

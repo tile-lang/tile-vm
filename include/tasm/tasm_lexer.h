@@ -170,7 +170,7 @@ tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_ID, val);
 
@@ -208,7 +208,7 @@ tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
     // tasm_lexer_advance(lexer);
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_STRING, val);
     return token;
@@ -225,7 +225,7 @@ tasm_token_t tasm_lexer_collect_char(tasm_lexer_t *lexer) {
         return tasm_token_create(TOKEN_NONE, NULL);
     }
 
-    char* val = (char*)arena_alloc(lexer->tokens_arena, 2);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, 2);
     memmove(val, temp_val, 2);
     tasm_token_t token = tasm_token_create(TOKEN_CHAR, val);
     return token;
@@ -260,7 +260,7 @@ tasm_token_t tasm_lexer_collect_number(tasm_lexer_t *lexer) {
 
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(type, val);
     return token;
@@ -278,7 +278,7 @@ tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_HEX_NUMBER, val);
     return token;
@@ -296,7 +296,7 @@ tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_BINARY_NUMBER, val);
     return token;

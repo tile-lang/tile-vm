@@ -26,7 +26,7 @@ typedef struct arena_struct {
 } arena_t;
 
 arena_t* arena_init(size_t size);
-void* arena_alloc(arena_t* arena, size_t size);
+void* arena_alloc(arena_t** arena, size_t size);
 void* arena_realloc(arena_t* arena, void* ptr, size_t size);
 arena_t* arena_grow(arena_t* arena);
 void arena_reset(arena_t* arena);
@@ -52,11 +52,15 @@ arena_t* arena_init(size_t size) {
     return ptr;
 }
 
-void* arena_alloc(arena_t* arena, size_t size) {
-    if (size == 0)
+void* arena_alloc(arena_t** arena_ptr, size_t size) {
+    if (size == 0 || arena_ptr == NULL || *arena_ptr == NULL)
         return NULL;
-    if (arena->size + size > arena->capacity)
+    arena_t* arena = *arena_ptr;
+    if (arena->size + size > arena->capacity) {
         arena = arena_grow(arena);
+        *arena_ptr = arena;
+    }
+    // Allocate memory and increment size
     void* ptr = &arena->memory[arena->size];
     arena->size += size;
     return ptr;
@@ -82,13 +86,18 @@ void arena_reset(arena_t* arena) {
 }
 
 void arena_destroy(arena_t* arena) {
-    arena_t** a = &arena;
-    while ((*a)->prev != NULL) {
-        free((*a)->memory);
-        (*a) = (*a)->prev;
+    // go to the head of the list
+    while (arena->prev != NULL) {
+        arena = arena->prev;
     }
-    free((*a)->memory);
-    free(*a);
+    // Free all
+    arena_t* next;
+    while (arena != NULL) {
+        next = arena->next;
+        free(arena->memory);
+        free(arena);
+        arena = next;
+    }
 }
 
 

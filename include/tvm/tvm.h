@@ -245,7 +245,7 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             fread(&symbol_name_len, sizeof(uint8_t), 1, file);
             byte_size -= sizeof(uint8_t);
 
-            char* symbol_name = arena_alloc(vm->program.program_arena, sizeof(char) * symbol_name_len + 1);
+            char* symbol_name = arena_alloc(&vm->program.program_arena, sizeof(char) * symbol_name_len + 1);
             fread(symbol_name, sizeof(char), symbol_name_len, file);
             symbol_name[symbol_name_len] = '\0';
             byte_size -= sizeof(char) * symbol_name_len;
@@ -258,7 +258,7 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             fread(&rtype, sizeof(uint8_t), 1, file);
             byte_size -= sizeof(uint8_t);
 
-            uint8_t* atypes = arena_alloc(vm->program.program_arena, sizeof(uint8_t) * acount);
+            uint8_t* atypes = arena_alloc(&vm->program.program_arena, sizeof(uint8_t) * acount);
             fread(atypes, sizeof(uint8_t), acount, file);
             byte_size -= sizeof(uint8_t) * acount;
 
@@ -276,11 +276,11 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
         fread(&data_size, sizeof(size_t), 1, file);
         byte_size -= sizeof(size_t);
         if (referance_count > 0) {
-            size_t* referances = arena_alloc(vm->program.program_arena, sizeof(size_t) * referance_count);
+            size_t* referances = arena_alloc(&vm->program.program_arena, sizeof(size_t) * referance_count);
             fread(referances, sizeof(size_t), referance_count, file);
             byte_size -= sizeof(size_t) * referance_count;
 
-            uint8_t* data = arena_alloc(vm->program.program_arena, data_size);
+            uint8_t* data = arena_alloc(&vm->program.program_arena, data_size);
             fread(data, sizeof(uint8_t), data_size, file);
             byte_size -= sizeof(uint8_t) * data_size;
 

@@ -22,7 +22,7 @@ char* read_file_content(const char* file_name) {
         exit(1);
     }
 
-    char* content = arena_alloc(src_arena, file_size);
+    char* content = arena_alloc(&src_arena, file_size);
 
     char ch = 0;
     for (size_t i = 0; ch != EOF; i++) {

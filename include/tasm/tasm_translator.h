@@ -386,7 +386,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_call.name);
-                name = arena_alloc(translator->cstr_arena, size1 + size2 + 2);
+                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
                 strcat(name, "$");
                 strcat(name, node->label_call.name);
@@ -588,7 +588,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_decl.name);
-                name = arena_alloc(translator->cstr_arena, size1 + size2 + 2);
+                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
                 strcat(name, "$");
                 strcat(name, node->label_decl.name);
