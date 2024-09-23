@@ -82,13 +82,13 @@ void arena_reset(arena_t* arena) {
 }
 
 void arena_destroy(arena_t* arena) {
-    if (arena == NULL)
-        return;
-    if (arena->next)
-        free(arena->next);
-        
-    free(arena->memory);
-    arena_destroy(arena->prev);
+    arena_t** a = &arena;
+    while ((*a)->prev != NULL) {
+        free((*a)->memory);
+        (*a) = (*a)->prev;
+    }
+    free((*a)->memory);
+    free(*a);
 }
 
 
