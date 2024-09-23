@@ -302,7 +302,7 @@ tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
     return token;
 }
 
-const size_t _inst_strings_count = 46;
+const size_t _inst_strings_count = 47;
 
 const char* _inst_strings_lower[] = {
     "nop", "push", "pop",
