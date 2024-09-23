@@ -469,7 +469,8 @@ void tasm_translate_data(tasm_translator_t *translator, tasm_ast_t *node) {
     }
     case AST_CHAR: {
         arrput(translator->program.const_table.referances, beginning_address);
-        arrput(translator->program.const_table.data, node->character.value[0]);
+        uint8_t* begin = arraddnptr(translator->program.const_table.data, 1);
+        memmove(begin, (uint8_t*)&node->data.value->character.value[0], 1);
         beginning_address += 1;
         break;
     }    
