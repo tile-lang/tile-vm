@@ -101,11 +101,11 @@ void tasm_lexer_skip_line(tasm_lexer_t* lexer) {
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
     if (lexer->prev_char == '"' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
         return tasm_lexer_collect_str(lexer);
+    if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
+        return tasm_lexer_collect_char(lexer);
     
     tasm_lexer_skip_whitespace(lexer);
 
-    if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
-        return tasm_lexer_collect_char(lexer);
     if (isalpha(lexer->current_char) || lexer->current_char == '_')
         return tasm_lexer_collect_id(lexer);
     if (isbinprefix(lexer->current_char, lexer->next_char))
