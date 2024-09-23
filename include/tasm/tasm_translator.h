@@ -91,6 +91,8 @@ tasm_translator_t tasm_translator_init() {
 
 void tasm_translator_destroy(tasm_translator_t* translator) {
     arena_destroy(translator->cstr_arena);
+    arrfree(translator->program.const_table.referances);
+    arrfree(translator->program.const_table.data);
 }
 
 static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, const char* prefix, bool is_call) {
