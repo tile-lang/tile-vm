@@ -424,11 +424,11 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
             arrput(lines, line);
         }
     }
-    tasm_parser_eat(parser, TOKEN_ENDP);
-
     if (parser->warnings.proc_return_warning)
         tasm_parser_warn(parser, "procedure: there is no "CLR_PINK"ret"CLR_END" opcode. It may cause possible unpredicted behaivours");
     parser->warnings.proc_return_warning = true;
+
+    tasm_parser_eat(parser, TOKEN_ENDP);
 
     tasm_ast_t* ast_proc = tasm_ast_create((tasm_ast_t) {
         .tag = AST_PROC,

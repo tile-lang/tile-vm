@@ -94,11 +94,11 @@ typedef struct {
         int32_t  i32;
         float    f32;
     };
-} object_t;
+} stack_object_t;
 
 typedef struct {
     optype_t type;
-    object_t operand;
+    stack_object_t operand;
 } opcode_t;
 
 typedef enum {
@@ -146,11 +146,11 @@ typedef struct {
 typedef struct tvm_frame {
     struct tvm_frame* next;
     struct tvm_frame* prev;
-    object_t local_vars[TVM_MAX_LOCAL_VAR];
+    stack_object_t local_vars[TVM_MAX_LOCAL_VAR];
 } tvm_frame_t;
 
 typedef struct {
-    object_t stack[TVM_STACK_CAPACITY];
+    stack_object_t stack[TVM_STACK_CAPACITY];
     word_t sp; // stack pointer
 
     word_t return_stack[RETURN_STACK_CAPACITY];
@@ -412,7 +412,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_INVALID_STACK_ACCESS;
         else if (vm->sp < 2)
             return EXCEPT_STACK_UNDERFLOW;
-        object_t temp = vm->stack[vm->sp - 1];
+        stack_object_t temp = vm->stack[vm->sp - 1];
         vm->stack[vm->sp - 1] = vm->stack[vm->sp - inst.operand.ui32 - 1];
         vm->stack[vm->sp - inst.operand.ui32 - 1] = temp;
         vm->ip++;
@@ -523,37 +523,37 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     case OP_CI2F:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].i32;  
+        vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].i32;
         vm->ip++;
         break;
     case OP_CI2U:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].ui32 = vm->stack[vm->sp - 1].i32;  
+        vm->stack[vm->sp - 1].ui32 = vm->stack[vm->sp - 1].i32;
         vm->ip++;
         break;        
     case OP_CF2I:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].i32 = vm->stack[vm->sp - 1].f32;  
+        vm->stack[vm->sp - 1].i32 = vm->stack[vm->sp - 1].f32;
         vm->ip++;
         break;
     case OP_CF2U:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].ui32 = vm->stack[vm->sp - 1].f32;  
+        vm->stack[vm->sp - 1].ui32 = vm->stack[vm->sp - 1].f32;
         vm->ip++;
         break;
     case OP_CU2I:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].i32 = vm->stack[vm->sp - 1].ui32;  
+        vm->stack[vm->sp - 1].i32 = vm->stack[vm->sp - 1].ui32;
         vm->ip++;
         break;
     case OP_CU2F:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].ui32;  
+        vm->stack[vm->sp - 1].f32 = vm->stack[vm->sp - 1].ui32;
         vm->ip++;
         break;
     case OP_GT:
