@@ -182,7 +182,7 @@ void tasm_parser_eat_err_msg(int token_type) {
 void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
     if (parser->current_token.type != token_type) {
         printf(
-        "%s:%d:%d:"CLR_RED"Unexpected token:"CLR_END"`%s`, with type `%d`\nExpected type `%d`\n",
+        "%s:%d:%d: "CLR_RED"ERROR"CLR_END" Unexpected token: `%s`, with type `%d`\nExpected type `%d`\n",
         parser->lexer->loc.file_name,
         parser->lexer->loc.row,
         parser->lexer->loc.col,
@@ -425,7 +425,6 @@ tasm_ast_t* tasm_parse_proc(tasm_parser_t *parser) {
                 parser->warnings.proc_return_warning = false;
             arrput(lines, line);
         }
-        printf("%d\n", parser->current_token.type);
     }
     tasm_parser_eat(parser, TOKEN_ENDP);
 

@@ -68,7 +68,7 @@ void* arena_alloc(arena_t** arena_ptr, size_t size) {
 
 void* arena_realloc(arena_t* arena, void* ptr, size_t new_size) {
     if (ptr == NULL) {
-        return arena_alloc(arena, new_size);
+        return arena_alloc(&arena, new_size);
     }
     // TODO: not implemented yet!
     return NULL;
