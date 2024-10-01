@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <tasm/tasm_token.h>
 #include <common/arena.h>
+#include <common/cmd_colors.h>
 
 #define TOKENS_ARENA_CAPACITY 2048
 
@@ -30,6 +31,11 @@ void tasm_lexer_destroy(tasm_lexer_t* lexer);
 void tasm_lexer_advance(tasm_lexer_t* lexer);
 void tasm_lexer_skip_whitespace(tasm_lexer_t* lexer);
 void tasm_lexer_skip_line(tasm_lexer_t* lexer);
+// Peek function checks the next character without advancing
+// if you call 2 times it peeks 2 character ahead
+char tasm_lexer_peek(tasm_lexer_t* lexer);
+// Peek reset function resets the peek function
+void tasm_lexer_peek_reset(tasm_lexer_t *lexer);
 
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer);
 
@@ -83,6 +89,23 @@ void tasm_lexer_advance(tasm_lexer_t* lexer) {
         lexer->next_char = lexer->source_code[++lexer->cursor + 1];
         lexer->loc.col++;
     }
+}
+static char tasm_lexer_peek_upgraded(tasm_lexer_t* lexer, bool reset) {
+    static size_t peek = 0;
+    if(peek + lexer->cursor >= lexer->source_code_size)
+        return '\0';
+    peek++;
+    if (reset)
+        peek = 0;
+    return lexer->source_code[lexer->cursor + peek - 1];
+}
+
+char tasm_lexer_peek(tasm_lexer_t *lexer) {
+    return tasm_lexer_peek_upgraded(lexer, false);
+}
+
+void tasm_lexer_peek_reset(tasm_lexer_t *lexer) {
+    tasm_lexer_peek_upgraded(lexer, true);
 }
 
 void tasm_lexer_skip_whitespace(tasm_lexer_t* lexer) {
@@ -200,7 +223,22 @@ tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
     size_t len = 0;
     char temp_val[128];
     // tasm_lexer_advance(lexer);
+    size_t line_end = 0;
+    char c = tasm_lexer_peek(lexer);
+    while (c != '\n' && c != EOF) {
+        line_end++;
+        c = tasm_lexer_peek(lexer);
+    }
+    tasm_lexer_peek_reset(lexer);
     while (lexer->current_char != '"') {
+        if (len > line_end) {
+            printf("%s:%d:%d: "CLR_RED"ERROR"CLR_END" missing string quota '\"'\n",
+                lexer->loc.file_name,
+                lexer->loc.row,
+                lexer->loc.col
+            );
+            break;
+        }
         temp_val[len] = lexer->current_char;
         len++;
         tasm_lexer_advance(lexer);
