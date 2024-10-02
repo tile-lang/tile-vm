@@ -24,6 +24,8 @@ typedef enum {
     EXCEPT_INVALID_INSTRUCTION,
     EXCEPT_INVALID_INSTRUCTION_ACCESS,
     EXCEPT_INVALID_LOCAL_VAR_ACCESS,
+    EXCEPT_INVALID_CONSTANT_ACCESS,
+    EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS,
     EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS,
     EXCEPT_INVALID_STACK_ACCESS,
     EXCEPT_DIVISION_BY_ZERO,
@@ -76,28 +78,38 @@ typedef enum {
     OP_LE,
     OP_LEF,
     /* load store */
-    OP_LOAD, // load to stack
-    OP_STORE, // store to local variable
+    OP_LOADC,  // load constant to stack
+    OP_ALOADC, // load address of constant to stack
+    OP_LOAD,   // load to stack
+    OP_STORE,  // store to local variable
+    /* print to standart output */
+    OP_PUTS,
     /* native */
     OP_NATIVE,
     /* halt */
     OP_HALT // termination
 } optype_t;
 
+typedef enum {
+    STACK_OBJ_NO_OPERAND,
+    STACK_OBJ_TYPE_DATA_ADDRESS,
+    STACK_OBJ_TYPE_VM_ADDRESS,
+    STACK_OBJ_TYPE_NUMBER,
+    STACK_OBJ_TYPE_CHARACTER,
+} stack_obj_type_t;
+
 typedef struct {
-    enum {
-        OBJECT_TYPE_ADDRESS,
-        OBJECT_TYPE_NUMBER,
-    } type;
+    uint8_t type; //stack_obj_type_t
     union {
-        uint32_t ui32; // usually for addresses
+        intptr_t ui64; // usually for addresses
+        uint32_t ui32;
         int32_t  i32;
         float    f32;
     };
 } object_t;
 
 typedef struct {
-    optype_t type;
+    uint8_t type; //optype_t
     object_t operand;
 } opcode_t;
 
@@ -137,7 +149,15 @@ typedef struct {
 } tvm_program_metadata_t;
 
 typedef struct {
+    size_t* referances;
+    size_t referance_count;
+    uint8_t* data;
+    size_t data_size;
+} tvm_const_table;
+
+typedef struct {
     tvm_program_metadata_t metadata;
+    tvm_const_table const_table;
     opcode_t code[TVM_PROGRAM_CAPACITY];
     size_t size;
     arena_t* program_arena;
@@ -225,7 +245,7 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             fread(&symbol_name_len, sizeof(uint8_t), 1, file);
             byte_size -= sizeof(uint8_t);
 
-            char* symbol_name = arena_alloc(vm->program.program_arena, sizeof(char) * symbol_name_len + 1);
+            char* symbol_name = arena_alloc(&vm->program.program_arena, sizeof(char) * symbol_name_len + 1);
             fread(symbol_name, sizeof(char), symbol_name_len, file);
             symbol_name[symbol_name_len] = '\0';
             byte_size -= sizeof(char) * symbol_name_len;
@@ -238,7 +258,7 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             fread(&rtype, sizeof(uint8_t), 1, file);
             byte_size -= sizeof(uint8_t);
 
-            uint8_t* atypes = arena_alloc(vm->program.program_arena, sizeof(uint8_t) * acount);
+            uint8_t* atypes = arena_alloc(&vm->program.program_arena, sizeof(uint8_t) * acount);
             fread(atypes, sizeof(uint8_t), acount, file);
             byte_size -= sizeof(uint8_t) * acount;
 
@@ -248,9 +268,30 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             vm->program.metadata.cfuns[i].atypes = atypes;
         }
     }
+    {
+        size_t referance_count;
+        fread(&referance_count, sizeof(size_t), 1, file);
+        byte_size -= sizeof(size_t);
+        size_t data_size;
+        fread(&data_size, sizeof(size_t), 1, file);
+        byte_size -= sizeof(size_t);
+        if (referance_count > 0) {
+            size_t* referances = arena_alloc(&vm->program.program_arena, sizeof(size_t) * referance_count);
+            fread(referances, sizeof(size_t), referance_count, file);
+            byte_size -= sizeof(size_t) * referance_count;
+
+            uint8_t* data = arena_alloc(&vm->program.program_arena, data_size);
+            fread(data, sizeof(uint8_t), data_size, file);
+            byte_size -= sizeof(uint8_t) * data_size;
+
+            vm->program.const_table.referances = referances;
+            vm->program.const_table.data = data;
+        }
+        vm->program.const_table.referance_count = referance_count;
+        vm->program.const_table.data_size = data_size;
+    }
     vm->program.size = byte_size/opcode_size;
     fread(vm->program.code, opcode_size, vm->program.size, file);
-    
     fclose(file);
 }
 
@@ -276,6 +317,10 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
     case EXCEPT_INVALID_LOCAL_VAR_ACCESS:
         return "EXCEPT_INVALID_LOCAL_VAR_ACCESS";
+    case EXCEPT_INVALID_CONSTANT_ACCESS:
+        return "EXCEPT_INVALID_CONSTANT_ACCESS";
+    case EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS:
+        return "EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS";
     case EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS:
         return "EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS";
     case EXCEPT_INVALID_STACK_ACCESS:
@@ -302,6 +347,7 @@ tvm_t tvm_init() {
                 .hour = 0,
                 .cfuns = {0},
             },
+            .const_table = {0},
             .code = {0},
             .size = 0,
             .program_arena = arena_init(1024),
@@ -320,7 +366,7 @@ void tvm_destroy(tvm_t* vm) {
 exception_t tvm_exec_opcode(tvm_t* vm) {
     opcode_t inst = vm->program.code[vm->ip];
     // printf("inst: %d\n", inst.type);
-    tvm_stack_dump(vm);
+    // tvm_stack_dump(vm);
     switch (inst.type) {
     case OP_NOP:
         /* no operation */
@@ -646,6 +692,22 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp--;
         vm->ip++;
         break;
+    case OP_LOADC:
+        if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (inst.operand.ui32 >= vm->program.const_table.referance_count)
+            return EXCEPT_INVALID_CONSTANT_ACCESS;
+        vm->stack[vm->sp++].ui32 = *(uint32_t*)&vm->program.const_table.data[vm->program.const_table.referances[inst.operand.ui32]];
+        vm->ip++;
+        break;
+    case OP_ALOADC:
+        if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (inst.operand.ui32 >= vm->program.const_table.referance_count)
+            return EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS;
+        vm->stack[vm->sp++].ui64 = (intptr_t)&vm->program.const_table.data[vm->program.const_table.referances[inst.operand.ui32]];
+        vm->ip++;
+        break;
     case OP_LOAD:
         if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
@@ -660,6 +722,12 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         if (inst.operand.ui32 >= TVM_MAX_LOCAL_VAR)
             return EXCEPT_INVALID_LOCAL_VAR_ACCESS;
         vm->frame->local_vars[inst.operand.ui32] = vm->stack[--vm->sp];
+        vm->ip++;
+        break;
+    case OP_PUTS:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        fputs((const char*)vm->stack[--vm->sp].ui64, stdout);
         vm->ip++;
         break;
     case OP_NATIVE: {

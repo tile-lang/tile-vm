@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <tasm/tasm_token.h>
 #include <common/arena.h>
+#include <common/cmd_colors.h>
 
 #define TOKENS_ARENA_CAPACITY 2048
 
@@ -30,6 +31,11 @@ void tasm_lexer_destroy(tasm_lexer_t* lexer);
 void tasm_lexer_advance(tasm_lexer_t* lexer);
 void tasm_lexer_skip_whitespace(tasm_lexer_t* lexer);
 void tasm_lexer_skip_line(tasm_lexer_t* lexer);
+// Peek function checks the next character without advancing
+// if you call 2 times it peeks 2 character ahead
+char tasm_lexer_peek(tasm_lexer_t* lexer);
+// Peek reset function resets the peek function
+void tasm_lexer_peek_reset(tasm_lexer_t *lexer);
 
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer);
 
@@ -84,6 +90,23 @@ void tasm_lexer_advance(tasm_lexer_t* lexer) {
         lexer->loc.col++;
     }
 }
+static char tasm_lexer_peek_upgraded(tasm_lexer_t* lexer, bool reset) {
+    static size_t peek = 0;
+    if(peek + lexer->cursor >= lexer->source_code_size)
+        return '\0';
+    peek++;
+    if (reset)
+        peek = 0;
+    return lexer->source_code[lexer->cursor + peek - 1];
+}
+
+char tasm_lexer_peek(tasm_lexer_t *lexer) {
+    return tasm_lexer_peek_upgraded(lexer, false);
+}
+
+void tasm_lexer_peek_reset(tasm_lexer_t *lexer) {
+    tasm_lexer_peek_upgraded(lexer, true);
+}
 
 void tasm_lexer_skip_whitespace(tasm_lexer_t* lexer) {
     while (lexer->current_char == ' '
@@ -101,11 +124,11 @@ void tasm_lexer_skip_line(tasm_lexer_t* lexer) {
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
     if (lexer->prev_char == '"' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
         return tasm_lexer_collect_str(lexer);
+    if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
+        return tasm_lexer_collect_char(lexer);
     
     tasm_lexer_skip_whitespace(lexer);
 
-    if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
-        return tasm_lexer_collect_char(lexer);
     if (isalpha(lexer->current_char) || lexer->current_char == '_')
         return tasm_lexer_collect_id(lexer);
     if (isbinprefix(lexer->current_char, lexer->next_char))
@@ -170,7 +193,7 @@ tasm_token_t tasm_lexer_collect_id(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_ID, val);
 
@@ -200,7 +223,22 @@ tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
     size_t len = 0;
     char temp_val[128];
     // tasm_lexer_advance(lexer);
+    size_t line_end = 0;
+    char c = tasm_lexer_peek(lexer);
+    while (c != '\n' && c != EOF) {
+        line_end++;
+        c = tasm_lexer_peek(lexer);
+    }
+    tasm_lexer_peek_reset(lexer);
     while (lexer->current_char != '"') {
+        if (len > line_end) {
+            printf("%s:%d:%d: "CLR_RED"ERROR"CLR_END" missing string quota '\"'\n",
+                lexer->loc.file_name,
+                lexer->loc.row,
+                lexer->loc.col
+            );
+            break;
+        }
         temp_val[len] = lexer->current_char;
         len++;
         tasm_lexer_advance(lexer);
@@ -208,7 +246,7 @@ tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
     // tasm_lexer_advance(lexer);
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_STRING, val);
     return token;
@@ -225,7 +263,7 @@ tasm_token_t tasm_lexer_collect_char(tasm_lexer_t *lexer) {
         return tasm_token_create(TOKEN_NONE, NULL);
     }
 
-    char* val = (char*)arena_alloc(lexer->tokens_arena, 2);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, 2);
     memmove(val, temp_val, 2);
     tasm_token_t token = tasm_token_create(TOKEN_CHAR, val);
     return token;
@@ -260,7 +298,7 @@ tasm_token_t tasm_lexer_collect_number(tasm_lexer_t *lexer) {
 
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(type, val);
     return token;
@@ -278,7 +316,7 @@ tasm_token_t tasm_lexer_collect_hex_number(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_HEX_NUMBER, val);
     return token;
@@ -296,13 +334,13 @@ tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
     }
     temp_val[len] = '\0';
     len++;
-    char* val = (char*)arena_alloc(lexer->tokens_arena, len);
+    char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
     memmove(val, temp_val, len);
     tasm_token_t token = tasm_token_create(TOKEN_BINARY_NUMBER, val);
     return token;
 }
 
-const size_t _inst_strings_count = 44;
+const size_t _inst_strings_count = 47;
 
 const char* _inst_strings_lower[] = {
     "nop", "push", "pop",
@@ -314,7 +352,8 @@ const char* _inst_strings_lower[] = {
     "jmp","jz" ,"jnz", "call", "ret",
     "ci2f", "ci2u", "cf2i", "cf2u", "cu2i", "cu2f",
     "gt", "gtf", "lt", "ltf", "eq", "eqf", "ge", "gef", "le", "lef",
-    "load",  "store",
+    "loadc", "aloadc", "load",  "store",
+    "puts",
     "native",
     "hlt"
 };
@@ -329,7 +368,8 @@ const char* _inst_strings_upper[] = {
     "JMP","JZ" ,"JNZ", "CALL", "RET",
     "CI2F", "CI2U", "CF2I", "CF2U", "CU2I", "CU2F",
     "GT", "GTF", "LT", "LTF", "EQ", "EQF", "GE", "GEF", "LE", "LEF",
-    "LOAD",  "STORE",
+    "LOADC", "ALOADC", "LOAD",  "STORE",
+    "PUTS",
     "NATIVE",
     "HLT"
 };

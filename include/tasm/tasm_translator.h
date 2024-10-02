@@ -70,6 +70,7 @@ tasm_translator_t tasm_translator_init() {
                 .hour = 0,
                 .cfuns = {0},
             },
+            .const_table = {0},
             .code = {0},
             .size = 0,
             .program_arena = NULL,
@@ -90,6 +91,8 @@ tasm_translator_t tasm_translator_init() {
 
 void tasm_translator_destroy(tasm_translator_t* translator) {
     arena_destroy(translator->cstr_arena);
+    arrfree(translator->program.const_table.referances);
+    arrfree(translator->program.const_table.data);
 }
 
 static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node, const char* prefix, bool is_call) {
@@ -101,12 +104,14 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_PUSH,
                 });
             } else if (node->inst.operand->tag == AST_CHAR) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_CHARACTER,
                     .operand.ui32 = (uint32_t)node->inst.operand->character.value[0],
                     .type = OP_PUSH,
                 });
@@ -132,6 +137,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_CLN,
                 });
@@ -141,6 +147,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_SWAP,
                 });
@@ -180,6 +187,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_JMP,
                 });
@@ -193,6 +201,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_JMP,
                 });
@@ -202,6 +211,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_JZ,
                 });
@@ -215,6 +225,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_JZ,
                 });
@@ -224,6 +235,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_JNZ,
                 });
@@ -237,6 +249,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_JNZ,
                 });
@@ -252,6 +265,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 }
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_VM_ADDRESS,
                     .operand.ui32 = addr,
                     .type = OP_CALL,
                 });
@@ -308,10 +322,31 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_LOADC:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_LOADC,
+                });
+            }
+            break;
+        case AST_OP_ALOADC:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_DATA_ADDRESS,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_ALOADC,
+                });
+            }
+            break;
         case AST_OP_LOAD:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_LOAD,
                 });
@@ -321,15 +356,20 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_STORE,
                 });
             }
             break;
+        case AST_OP_PUTS:
+            program_push(translator, (opcode_t){.type = OP_PUTS});
+            break;
         case AST_OP_NATIVE:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_NATIVE,
                 });
@@ -348,7 +388,7 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_call.name);
-                name = arena_alloc(translator->cstr_arena, size1 + size2 + 2);
+                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
                 strcat(name, "$");
                 strcat(name, node->label_call.name);
@@ -408,9 +448,39 @@ void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node) {
 }
 
 void tasm_translate_data(tasm_translator_t *translator, tasm_ast_t *node) {
-    UNUSED_VAR(translator);
-    UNUSED_VAR(node);
-    // TODO: implement this
+    static size_t beginning_address = 0;
+    // if (translator->program.const_table.referance_count <= 0)
+
+    switch (node->data.value->tag)
+    {
+    case AST_STRING: {
+        size_t len = node->data.value->string.length;
+        arrput(translator->program.const_table.referances, beginning_address);
+        uint8_t* begin = arraddnptr(translator->program.const_table.data, len);
+        memmove(begin, node->data.value->string.value, len);
+        beginning_address += len;
+        break;
+    }
+    case AST_NUMBER: {
+        size_t len = sizeof(uint32_t);
+        arrput(translator->program.const_table.referances, beginning_address);
+        uint8_t* begin = arraddnptr(translator->program.const_table.data, len);
+        memmove(begin, (uint8_t*)&node->data.value->number.value.u32, len);
+        beginning_address += len;
+        break;
+    }
+    case AST_CHAR: {
+        arrput(translator->program.const_table.referances, beginning_address);
+        uint8_t* begin = arraddnptr(translator->program.const_table.data, 1);
+        memmove(begin, (uint8_t*)&node->data.value->character.value[0], 1);
+        beginning_address += 1;
+        break;
+    }    
+    default:
+        break;
+    }
+    translator->program.const_table.referance_count++;
+    translator->program.const_table.data_size = beginning_address;
 }
 
 static void tasm_translate_proc_and_line(tasm_translator_t *translator, tasm_ast_t *node) {
@@ -504,8 +574,11 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOADC:
+        case AST_OP_ALOADC:
         case AST_OP_LOAD:
         case AST_OP_STORE:
+        case AST_OP_PUTS:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.label_address_pointer++;
@@ -517,7 +590,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
             if (prefix != NULL) {
                 size_t size2 = strlen(prefix);
                 size_t size1 = strlen(node->label_decl.name);
-                name = arena_alloc(translator->cstr_arena, size1 + size2 + 2);
+                name = arena_alloc(&translator->cstr_arena, size1 + size2 + 2);
                 strcpy(name, prefix);
                 strcat(name, "$");
                 strcat(name, node->label_decl.name);
@@ -596,8 +669,11 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
         case AST_OP_GEF:
         case AST_OP_LE:
         case AST_OP_LEF:
+        case AST_OP_LOADC:
+        case AST_OP_ALOADC:
         case AST_OP_LOAD:
         case AST_OP_STORE:
+        case AST_OP_PUTS:
         case AST_OP_NATIVE:
         case AST_OP_HALT:
             translator->symbols.proc_address_pointer++;
@@ -677,6 +753,7 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
 //    ...
 //    .CODE
 //    ...
+//    .DATA
     
     {
         uint32_t fun_count = translator->program.metadata.cfun_count;
@@ -696,8 +773,20 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
                 fwrite(&atype, sizeof(atype), 1, file);
             }
         }
-        fwrite(translator->program.code, sizeof(translator->program.code[0]), translator->program.size, file);
     }
+    {
+        size_t elem_len = 0;
+        if (translator->program.const_table.referance_count > 0)
+            elem_len = translator->program.const_table.data_size;
+        fwrite(&translator->program.const_table.referance_count, sizeof(size_t), 1, file);
+        fwrite(&translator->program.const_table.data_size, sizeof(size_t), 1, file);
+        if (translator->program.const_table.referance_count > 0) {
+            fwrite(translator->program.const_table.referances, sizeof(size_t), translator->program.const_table.referance_count, file);
+            fwrite(translator->program.const_table.data, sizeof(uint8_t), elem_len, file);
+        }
+    }
+    
+    fwrite(translator->program.code, sizeof(translator->program.code[0]), translator->program.size, file);
 
     fclose(file);
     fprintf(stdout, "out.bin created "CLR_GREEN"successfully."CLR_END"\n");

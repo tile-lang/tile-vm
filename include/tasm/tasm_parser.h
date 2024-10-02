@@ -182,7 +182,7 @@ void tasm_parser_eat_err_msg(int token_type) {
 void tasm_parser_eat(tasm_parser_t* parser, token_type_t token_type) {
     if (parser->current_token.type != token_type) {
         printf(
-        "%s:%d:%d:"CLR_RED"Unexpected token:"CLR_END"`%s`, with type `%d`\nExpected type `%d`\n",
+        "%s:%d:%d: "CLR_RED"ERROR"CLR_END" Unexpected token: `%s`, with type `%d`\nExpected type `%d`\n",
         parser->lexer->loc.file_name,
         parser->lexer->loc.row,
         parser->lexer->loc.col,
@@ -368,6 +368,8 @@ tasm_ast_t* tasm_parse_proc_line(tasm_parser_t* parser) {
         tasm_parser_err(parser, COMPSITE_ERR_PROC_INSIDE_PROC, "A proc cannot be defined in anothe proc");
     if (is_line_meta(parser))
         tasm_parser_err(parser, COMPSITE_ERR_META_INSIDE_PROC, "Meta decleration must be declared at global scope");
+    if (parser->current_token.type == TOKEN_DATA)
+        tasm_parser_err(parser, COMPSITE_ERR_META_INSIDE_PROC, "@data decleration must be declared at global scope");
 
     if (parser->current_token.type == TOKEN_ID ||
         parser->current_token.type == TOKEN_STRING ||
@@ -576,6 +578,14 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_LEF: tag = AST_OP_LEF;
         break;
+    case TOKEN_OP_LOADC: tag = AST_OP_LOADC;
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_LOAD_WRONG_OPERAND, "Wrong operand for loadc insturction");
+        break;
+    case TOKEN_OP_ALOADC: tag = AST_OP_ALOADC;
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_LOAD_WRONG_OPERAND, "Wrong operand for aloadc insturction");
+        break;
     case TOKEN_OP_LOAD: tag = AST_OP_LOAD;
         operand = tasm_parse_int_operand(parser);
         if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_LOAD_WRONG_OPERAND, "Wrong operand for load insturction");
@@ -583,6 +593,8 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_STORE: tag = AST_OP_STORE;
         operand = tasm_parse_int_operand(parser);
         if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_STORE_WRONG_OPERAND, "Wrong operand for store insturction");
+        break;
+    case TOKEN_OP_PUTS: tag = AST_OP_PUTS;
         break;
     case TOKEN_OP_NATIVE: tag = AST_OP_NATIVE;
         operand = tasm_parse_int_operand(parser);
@@ -748,7 +760,7 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative) {
     
     if (negative) {
         size_t size = strlen(parser->current_token.value);
-        text_val = arena_alloc(parser->lexer->tokens_arena, size + 2);
+        text_val = arena_alloc(&parser->lexer->tokens_arena, size + 2);
         memmove(&text_val[1], parser->current_token.value, size);
         text_val[0] = '-';
         text_val[size + 1] = '\0';

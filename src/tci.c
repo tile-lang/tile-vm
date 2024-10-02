@@ -79,13 +79,13 @@ ffi_type* tci_ctype_to_ffi_type(uint8_t ctype) {
 }
 
 void tci_prepare_last_module(tci_t* instance, uint32_t native_func_count) {
-    instance->modules[instance->module_count - 1].native_funcs = arena_alloc(instance->ffi_arena, sizeof(tci_native_func_t) * native_func_count);
+    instance->modules[instance->module_count - 1].native_funcs = arena_alloc(&instance->ffi_arena, sizeof(tci_native_func_t) * native_func_count);
     memset(instance->modules[instance->module_count - 1].native_funcs, 0, sizeof(tci_native_func_t) * native_func_count);
     instance->modules[instance->module_count - 1].native_func_count = native_func_count;
 }
 
 void tci_prepare_function(arena_t* arena, tci_native_func_t* function, uint8_t rtype, uint8_t* atypes, uint16_t acount) {
-    ffi_type** args = arena_alloc(arena, sizeof(ffi_type*) * acount);
+    ffi_type** args = arena_alloc(&arena, sizeof(ffi_type*) * acount);
     ffi_type* ret = tci_ctype_to_ffi_type(rtype);
     for (size_t i = 0; i < acount; i++) {
         uint8_t atype = atypes[i];
