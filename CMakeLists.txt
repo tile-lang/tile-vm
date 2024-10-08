@@ -14,8 +14,8 @@ if (WIN32)
         set (LIBFFI_LIBS "ffi.lib")
     else()  # MINGW
         message("LIBFFI: MINGW")
-        set(LIBFFI_INCLUDE_DIR "extern/libffi-win32/include")
-        set(LIBFFI_LIB_DIR "extern/libffi-win32/lib")
+        set(LIBFFI_INCLUDE_DIR "extern/libffi-mingw32/include") # or libffi-mingw64
+        set(LIBFFI_LIB_DIR "extern/libffi-mingw32/lib")
         set (LIBFFI_LIBS "libffi")
     endif()
 else()  # Linux or other platforms
