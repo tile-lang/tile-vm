@@ -62,6 +62,7 @@ file(GLOB TVM_SOURCES
 # Source files for tasm
 file(GLOB TASM_SOURCES
     "src/tasm.c"
+    "src/tasmc.c"
 )
 
 # Add executables
