@@ -1,5 +1,6 @@
 #include <tasm/tasm.h>
 #include <common/cmd_colors.h>
+#include <tasmc/tasmc.h>
 
 arena_t* src_arena;
 
@@ -99,8 +100,12 @@ int main(int argc, char **argv) {
     // symbol_dump(&translator);
 
     tasm_translate_unit(&translator, ast);
-    if (!tasm_translator_is_err(&translator))
+    if (!tasm_translator_is_err(&translator)) {
         tasm_translator_generate_bin(&translator);
+        tasmc_init("out.asm");
+        tasmc_compile_nasm(ast);
+        tasmc_destroy();
+    }
     
     tasm_translator_destroy(&translator);
 
