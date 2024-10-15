@@ -1,0 +1,16 @@
+jmp _main
+
+
+
+_main:
+    push -0xA
+    push 177
+    
+    loadc 0 ; WIDTH
+
+
+    hlt
+
+@data 800
+@data 600
+@data "Hello World!"

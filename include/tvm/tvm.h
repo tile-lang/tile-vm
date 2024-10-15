@@ -77,6 +77,10 @@ typedef enum {
     OP_GEF,
     OP_LE,
     OP_LEF,
+    /* logical */
+    OP_AND,
+    OP_OR,
+    OP_NOT,
     /* load store */
     OP_LOADC,  // load constant to stack
     OP_ALOADC, // load address of constant to stack
@@ -366,7 +370,7 @@ void tvm_destroy(tvm_t* vm) {
 exception_t tvm_exec_opcode(tvm_t* vm) {
     opcode_t inst = vm->program.code[vm->ip];
     // printf("inst: %d\n", inst.type);
-    // tvm_stack_dump(vm);
+    tvm_stack_dump(vm);
     switch (inst.type) {
     case OP_NOP:
         /* no operation */
@@ -692,6 +696,30 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp--;
         vm->ip++;
         break;
+    case OP_AND:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp - 2].i32 = vm->stack[vm->sp - 2].i32 && vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_OR:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        else if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        vm->stack[vm->sp - 2].i32 = vm->stack[vm->sp - 2].i32 || vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_NOT:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].i32 = !vm->stack[vm->sp - 1].i32;
+        vm->ip++;
+        break;
     case OP_LOADC:
         if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
@@ -761,7 +789,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         break;
     default:
         return EXCEPT_INVALID_INSTRUCTION;
-        break;    
+        break;
     }
 
     return EXCEPT_OK;

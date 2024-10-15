@@ -1,7 +1,8 @@
 CFLAGS = -Wall -Wextra -Wno-missing-braces -std=c11
 CC = gcc
 BUILD = build
-LIBFFI = extern/libffi-mingw32 # or extern/libffi-mingw64
+LIBFFI = extern/libffi-mingw32
+# 	  or extern/libffi-mingw64
 
 all: tvm tasm
 

@@ -66,6 +66,9 @@ typedef struct tasm_ast{
         AST_OP_GEF,
         AST_OP_LE,
         AST_OP_LEF,
+        AST_OP_AND,
+        AST_OP_OR,
+        AST_OP_NOT,
         AST_OP_LOADC,
         AST_OP_ALOADC,
         AST_OP_LOAD,
@@ -343,6 +346,15 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             break;
         case AST_OP_LEF:
             printf("LEF\n");
+            break;
+        case AST_OP_AND:
+            printf("AND\n");
+            break;
+        case AST_OP_OR:
+            printf("OR\n");
+            break;
+        case AST_OP_NOT:
+            printf("NOT\n");
             break;
         case AST_OP_LOADC:
             printf("LOADC\n");

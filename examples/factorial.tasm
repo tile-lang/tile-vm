@@ -1,0 +1,29 @@
+jmp _start
+
+; factorial func with a loop
+proc fact
+    push 1
+    swap 0x1
+loop:
+    dup
+    dec
+    dup
+    swap 0x2
+    mult
+    swap 0x1
+    jz exit
+    dec
+    swap 0x2
+    mult
+    swap 0x1
+    jnz loop
+exit:
+    add
+    jz exit
+    ret
+endp
+
+_start:
+    push 5
+    call fact
+    hlt

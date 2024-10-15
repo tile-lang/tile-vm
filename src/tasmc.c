@@ -141,6 +141,9 @@ static void tasmc_compile_nasm_code(tasm_ast_t* node) {
         case AST_OP_GEF: break;
         case AST_OP_LE: break;
         case AST_OP_LEF: break;
+        case AST_OP_AND: break;
+        case AST_OP_OR: break;
+        case AST_OP_NOT: break;
         case AST_OP_LOADC: break;
         case AST_OP_ALOADC: break;
         case AST_OP_LOAD: break;
