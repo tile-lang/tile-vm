@@ -1,0 +1,19 @@
+jmp main
+
+proc myProc
+    jnz label
+    
+    push 7
+    jmp end
+
+    label:
+        push 6
+        jmp end
+    end:
+
+    ret
+endp
+
+main:
+    push 0
+    call myProc
