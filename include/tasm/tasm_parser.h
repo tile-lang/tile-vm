@@ -30,7 +30,7 @@
 #define COMPSITE_ERR_STORE_WRONG_OPERAND               2802
 #define COMPSITE_ERR_NATIVE_WRONG_OPERAND              2902
 #define COMPSITE_ERR_PROC_INSIDE_PROC                  3401
-#define COMPSITE_ERR_META_INSIDE_PROC            3601
+#define COMPSITE_ERR_META_INSIDE_PROC                  3601
 #define COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR           4000
 #define COMPSITE_ERR_CINTERFACE_ARG_TYPE_ERR           4100
 #define COMPSITE_ERR_FILE_LINE_UNEXPECTED_CINTERFACE_TOKEN_TYPE  5100
@@ -577,6 +577,12 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_LE: tag = AST_OP_LE;
         break;
     case TOKEN_OP_LEF: tag = AST_OP_LEF;
+        break;
+    case TOKEN_OP_AND: tag = AST_OP_AND;
+        break;
+    case TOKEN_OP_OR: tag = AST_OP_OR;
+        break;
+    case TOKEN_OP_NOT: tag = AST_OP_NOT;
         break;
     case TOKEN_OP_LOADC: tag = AST_OP_LOADC;
         operand = tasm_parse_int_operand(parser);

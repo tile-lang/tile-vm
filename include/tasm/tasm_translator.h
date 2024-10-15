@@ -62,6 +62,58 @@ bool tasm_translator_is_err(tasm_translator_t* translator);
 
 #ifdef TASM_TRANSLATOR_IMPLEMENTATION
 
+#define AST_OP_CODES \
+case AST_OP_NOP: \
+case AST_OP_PUSH: \
+case AST_OP_POP: \
+case AST_OP_ADD: \
+case AST_OP_SUB: \
+case AST_OP_MULT: \
+case AST_OP_DIV: \
+case AST_OP_MOD: \
+case AST_OP_DUP: \
+case AST_OP_CLN: \
+case AST_OP_SWAP: \
+case AST_OP_ADDF: \
+case AST_OP_SUBF: \
+case AST_OP_MULTF: \
+case AST_OP_DIVF: \
+case AST_OP_INC: \
+case AST_OP_INCF: \
+case AST_OP_DEC: \
+case AST_OP_DECF: \
+case AST_OP_JMP: \
+case AST_OP_JZ: \
+case AST_OP_JNZ: \
+case AST_OP_CALL: \
+case AST_OP_RET: \
+case AST_OP_CI2F: \
+case AST_OP_CI2U: \
+case AST_OP_CF2I: \
+case AST_OP_CF2U: \
+case AST_OP_CU2I: \
+case AST_OP_CU2F: \
+case AST_OP_GT: \
+case AST_OP_GTF: \
+case AST_OP_LT: \
+case AST_OP_LTF: \
+case AST_OP_EQ: \
+case AST_OP_EQF: \
+case AST_OP_GE: \
+case AST_OP_GEF: \
+case AST_OP_LE: \
+case AST_OP_LEF: \
+case AST_OP_AND: \
+case AST_OP_OR: \
+case AST_OP_NOT: \
+case AST_OP_LOADC: \
+case AST_OP_ALOADC: \
+case AST_OP_LOAD: \
+case AST_OP_STORE: \
+case AST_OP_PUTS: \
+case AST_OP_NATIVE: \
+case AST_OP_HALT \
+
 tasm_translator_t tasm_translator_init() {
     return (tasm_translator_t) {
         .program = {
@@ -322,6 +374,15 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_AND:
+            program_push(translator, (opcode_t){.type = OP_AND});
+            break;
+        case AST_OP_OR:
+            program_push(translator, (opcode_t){.type = OP_OR});
+            break;
+        case AST_OP_NOT:
+            program_push(translator, (opcode_t){.type = OP_NOT});
+            break;
         case AST_OP_LOADC:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
@@ -534,53 +595,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
                 tasm_resolve_labels(translator, node->file.lines[i], NULL);
             }
             break;
-        case AST_OP_NOP:
-        case AST_OP_PUSH:
-        case AST_OP_POP:
-        case AST_OP_ADD:
-        case AST_OP_SUB:
-        case AST_OP_MULT:
-        case AST_OP_DIV:
-        case AST_OP_MOD:
-        case AST_OP_DUP:
-        case AST_OP_CLN:
-        case AST_OP_SWAP:
-        case AST_OP_ADDF:
-        case AST_OP_SUBF:
-        case AST_OP_MULTF:
-        case AST_OP_DIVF:
-        case AST_OP_INC:
-        case AST_OP_INCF:
-        case AST_OP_DEC:
-        case AST_OP_DECF:
-        case AST_OP_JMP:
-        case AST_OP_JZ:
-        case AST_OP_JNZ:
-        case AST_OP_CALL:
-        case AST_OP_RET:
-        case AST_OP_CI2F:
-        case AST_OP_CI2U:
-        case AST_OP_CF2I:
-        case AST_OP_CF2U:
-        case AST_OP_CU2I:
-        case AST_OP_CU2F:
-        case AST_OP_GT:
-        case AST_OP_GTF:
-        case AST_OP_LT:
-        case AST_OP_LTF:
-        case AST_OP_EQ:
-        case AST_OP_EQF:
-        case AST_OP_GE:
-        case AST_OP_GEF:
-        case AST_OP_LE:
-        case AST_OP_LEF:
-        case AST_OP_LOADC:
-        case AST_OP_ALOADC:
-        case AST_OP_LOAD:
-        case AST_OP_STORE:
-        case AST_OP_PUTS:
-        case AST_OP_NATIVE:
-        case AST_OP_HALT:
+        AST_OP_CODES:
             translator->symbols.label_address_pointer++;
             break;
         case AST_LABEL_DECL: {
@@ -629,53 +644,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
                 tasm_resolve_procs(translator, node->file.lines[i]);
             }
             break;
-        case AST_OP_NOP:
-        case AST_OP_PUSH:
-        case AST_OP_POP:
-        case AST_OP_ADD:
-        case AST_OP_SUB:
-        case AST_OP_MULT:
-        case AST_OP_DIV:
-        case AST_OP_MOD:
-        case AST_OP_DUP:
-        case AST_OP_CLN:
-        case AST_OP_SWAP:
-        case AST_OP_ADDF:
-        case AST_OP_SUBF:
-        case AST_OP_MULTF:
-        case AST_OP_DIVF:
-        case AST_OP_INC:
-        case AST_OP_INCF:
-        case AST_OP_DEC:
-        case AST_OP_DECF:
-        case AST_OP_JMP:
-        case AST_OP_JZ:
-        case AST_OP_JNZ:
-        case AST_OP_CALL:
-        case AST_OP_RET:
-        case AST_OP_CI2F:
-        case AST_OP_CI2U:
-        case AST_OP_CF2I:
-        case AST_OP_CF2U:
-        case AST_OP_CU2I:
-        case AST_OP_CU2F:
-        case AST_OP_GT:
-        case AST_OP_GTF:
-        case AST_OP_LT:
-        case AST_OP_LTF:
-        case AST_OP_EQ:
-        case AST_OP_EQF:
-        case AST_OP_GE:
-        case AST_OP_GEF:
-        case AST_OP_LE:
-        case AST_OP_LEF:
-        case AST_OP_LOADC:
-        case AST_OP_ALOADC:
-        case AST_OP_LOAD:
-        case AST_OP_STORE:
-        case AST_OP_PUTS:
-        case AST_OP_NATIVE:
-        case AST_OP_HALT:
+        AST_OP_CODES:
             translator->symbols.proc_address_pointer++;
             break;
         case AST_PROC: {
