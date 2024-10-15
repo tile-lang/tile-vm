@@ -717,8 +717,6 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     case OP_NOT:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
-        else if (vm->sp >= TVM_STACK_CAPACITY)
-            return EXCEPT_STACK_OVERFLOW;
         vm->stack[vm->sp - 1].i32 = !vm->stack[vm->sp - 1].i32;
         vm->ip++;
         break;
