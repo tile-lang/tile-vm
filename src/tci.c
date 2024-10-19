@@ -96,13 +96,14 @@ void tci_prepare_function(arena_t* arena, tci_native_func_t* function, uint8_t r
 }
 
 void tci_metaprogram_to_ffi(tci_t* instance, tvm_t* vm) {
-    uint32_t cfun_count = vm->program.metadata.cfun_count;
+    //FIXME: support multi modules
+    uint32_t cfun_count = vm->program.metadata.modules[0].cfun_count;
     tci_prepare_last_module(instance, cfun_count);
 
     for (size_t i = 0; i < cfun_count; i++) {
-        uint16_t acount = vm->program.metadata.cfuns[i].acount;
-        uint8_t rtype = vm->program.metadata.cfuns[i].rtype;
-        uint8_t* atypes = vm->program.metadata.cfuns[i].atypes;
+        uint16_t acount = vm->program.metadata.modules[0].cfuns[i].acount;
+        uint8_t rtype = vm->program.metadata.modules[0].cfuns[i].rtype;
+        uint8_t* atypes = vm->program.metadata.modules[0].cfuns[i].atypes;
 
         tci_prepare_function(instance->ffi_arena, &instance->modules[instance->module_count - 1].native_funcs[i], rtype, atypes, acount);
     }
@@ -111,7 +112,8 @@ void tci_metaprogram_to_ffi(tci_t* instance, tvm_t* vm) {
 
 void tci_native_call(tvm_t* vm, uint32_t id, void *rvalue, void **avalues) {
     printf("id: %d\n", id);
-    const char* proc_name = vm->program.metadata.cfuns[id].symbol_name;
+    //FIXME: support multi modules
+    const char* proc_name = vm->program.metadata.modules[0].cfuns[id].symbol_name;
     printf(CLR_BLUE"%s\n"CLR_END, proc_name);
     if (tci_instance.modules[tci_instance.module_count - 1].native_funcs[id].is_ok == true) {
         cfunptr_t func_ptr = tci_get_cfunction(&tci_instance, proc_name);
