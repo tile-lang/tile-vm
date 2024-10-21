@@ -10,7 +10,8 @@
 
 #define TVM_STACK_CAPACITY 1024
 #define TVM_PROGRAM_CAPACITY 1024
-#define TVM_METADATA_CAPACITY 512
+#define TVM_METADATA_MAX_CFUN_CAPACITY 512
+#define TVM_METADATA_MAX_MODULE_CAPACITY 32
 #define RETURN_STACK_CAPACITY 1024
 #define TVM_MAX_LOCAL_VAR 64
 
@@ -147,9 +148,15 @@ typedef struct {
 // } tvm_program_cstruct_t;
 
 typedef struct {
-    int date, hour; // created at.
-    tvm_program_cfun_t cfuns[TVM_METADATA_CAPACITY];
+    tvm_program_cfun_t cfuns[TVM_METADATA_MAX_CFUN_CAPACITY];
+    const char* module_name;
     uint32_t cfun_count;
+} tvm_program_metadata_module_t;
+
+typedef struct {
+    int date, hour; // created at.
+    tvm_program_metadata_module_t modules[TVM_METADATA_MAX_MODULE_CAPACITY];
+    uint32_t module_count;
 } tvm_program_metadata_t;
 
 typedef struct {
@@ -239,11 +246,27 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
     fseek(file,0L,SEEK_SET);
     size_t opcode_size = sizeof(vm->program.code[0]);
 
-    uint32_t cfun_count;
-    fread(&cfun_count, sizeof(uint32_t), 1, file);
+    uint32_t module_count;
+    fread(&module_count, sizeof(uint32_t), 1, file);
     byte_size -= sizeof(uint32_t);
-    vm->program.metadata.cfun_count = cfun_count;
-    {
+    vm->program.metadata.module_count = module_count;
+
+    for (size_t k = 0; k < module_count; k++) {
+        uint8_t module_name_len;
+        fread(&module_name_len, sizeof(uint8_t), 1, file);
+        byte_size -= sizeof(uint8_t);
+
+        char* module_name = arena_alloc(&vm->program.program_arena, sizeof(char) * module_name_len + 1);
+        fread(module_name, sizeof(char), module_name_len, file);
+        module_name[module_name_len] = '\0';
+        byte_size -= sizeof(char) * module_name_len;
+        vm->program.metadata.modules[k].module_name = module_name;
+
+        uint32_t cfun_count;
+        fread(&cfun_count, sizeof(uint32_t), 1, file);
+        byte_size -= sizeof(uint32_t);
+        vm->program.metadata.modules[k].cfun_count = cfun_count;
+
         for (size_t i = 0; i < cfun_count; i++) {    
             uint8_t symbol_name_len;
             fread(&symbol_name_len, sizeof(uint8_t), 1, file);
@@ -266,10 +289,10 @@ void tvm_load_program_from_file(tvm_t* vm, const char* file_path) {
             fread(atypes, sizeof(uint8_t), acount, file);
             byte_size -= sizeof(uint8_t) * acount;
 
-            vm->program.metadata.cfuns[i].symbol_name = symbol_name;
-            vm->program.metadata.cfuns[i].acount = acount;
-            vm->program.metadata.cfuns[i].rtype = rtype;
-            vm->program.metadata.cfuns[i].atypes = atypes;
+            vm->program.metadata.modules[k].cfuns[i].symbol_name = symbol_name;
+            vm->program.metadata.modules[k].cfuns[i].acount = acount;
+            vm->program.metadata.modules[k].cfuns[i].rtype = rtype;
+            vm->program.metadata.modules[k].cfuns[i].atypes = atypes;
         }
     }
     {
@@ -349,7 +372,8 @@ tvm_t tvm_init() {
             .metadata = {
                 .date = 0,
                 .hour = 0,
-                .cfuns = {0},
+                .modules = {0},
+                .module_count = 0,
             },
             .const_table = {0},
             .code = {0},
@@ -759,8 +783,10 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->ip++;
         break;
     case OP_NATIVE: {
-        tvm_program_cfun_t native_func = vm->program.metadata.cfuns[inst.operand.ui32];
-        uint32_t native_func_count = vm->program.metadata.cfun_count;
+        //FIXME: support multi modules
+        tvm_program_cfun_t native_func = vm->program.metadata.modules[0].cfuns[inst.operand.ui32];
+        uint32_t native_func_count = vm->program.metadata.modules[0].cfun_count;
+        printf("%d\n", native_func_count);
         if (vm->sp < native_func.acount)
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
