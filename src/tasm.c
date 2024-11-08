@@ -1,5 +1,8 @@
 #include <tasm/tasm.h>
 #include <common/cmd_colors.h>
+#include <tasmc/tasmc.h>
+#define CLI_IMPLEMENTATION
+#include <common/cli.h>
 
 arena_t* src_arena;
 
@@ -34,36 +37,29 @@ char* read_file_content(const char* file_name) {
     return content;
 }
 
-bool tasm_usage(int argc) {
-    if (argc < 2) {
-        fprintf(stdout, CLR_RED"Invalid usage!"CLR_END "can not found input file.\n");
-        fprintf(stdout, "    tasm <file.tasm>\n");
-        return false;
-    }
-    if (argc >= 3) {
-        fprintf(stdout, CLR_YELLOW"Warning: "CLR_END "more than expected input\n");
-        fprintf(stdout, "    tasm <file.tasm>\n");
-    }
-    return true;
-}
 
 int main(int argc, char **argv) {
     
-    if (!tasm_usage(argc)) {
-        return -1;
-    }
+    cli_parsed_args_t args = {
+        .compile = 0,
+        .file_name = NULL,
+        .output_name = NULL,
+        .clib_count = 0,
+    };
 
-    char* file_name = argv[1];
+    if (!cli_tasm_parse_command_line(&args, &argc, &argv))
+        return EXIT_FAILURE;
+
 
     ast_arena = arena_init(1024);
     // FIXME: do not use arena for file reading!!!
     src_arena = arena_init(4096);
 
-    char* content = read_file_content(file_name);
+    char* content = read_file_content(args.file_name);
 
     tasm_lexer_t lexer = tasm_lexer_init(
         content,
-        file_name
+        args.file_name
     );
 
     // tasm_token_t t = tasm_token_create(TOKEN_NONE, NULL);
@@ -99,8 +95,14 @@ int main(int argc, char **argv) {
     // symbol_dump(&translator);
 
     tasm_translate_unit(&translator, ast);
-    if (!tasm_translator_is_err(&translator))
-        tasm_translator_generate_bin(&translator);
+    if (!tasm_translator_is_err(&translator)) {
+        tasm_translator_generate_bin(&translator, args);
+        if (args.compile) {
+            tasmc_init("out.asm");
+            tasmc_compile_nasm(ast);
+            tasmc_destroy();
+        }
+    }
     
     tasm_translator_destroy(&translator);
 

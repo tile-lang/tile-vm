@@ -5,6 +5,9 @@
 #include <common/cmd_colors.h>
 #include <tasm/tasm_ast.h>
 #include <tvm/tvm.h>
+#define CLI_IMPLEMENTATION
+#include <common/cli.h>
+
 
 #define MAX_PROGRAM_CAPACITY 1024
 #define SYMBOL_LABEL_CALL_CAPACITY 512
@@ -55,12 +58,64 @@ static size_t get_addr_from_proc_decl_symbol(tasm_translator_t* translator, cons
 void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node);
 void tasm_translate_data(tasm_translator_t* translator, tasm_ast_t* node);
-void tasm_translator_generate_bin(tasm_translator_t* translator);
+void tasm_translator_generate_bin(tasm_translator_t* translator, cli_parsed_args_t args);
 void symbol_dump(tasm_translator_t* translator);
 bool tasm_translator_is_err(tasm_translator_t* translator);
 
 
 #ifdef TASM_TRANSLATOR_IMPLEMENTATION
+
+#define AST_OP_CODES \
+case AST_OP_NOP: \
+case AST_OP_PUSH: \
+case AST_OP_POP: \
+case AST_OP_ADD: \
+case AST_OP_SUB: \
+case AST_OP_MULT: \
+case AST_OP_DIV: \
+case AST_OP_MOD: \
+case AST_OP_DUP: \
+case AST_OP_CLN: \
+case AST_OP_SWAP: \
+case AST_OP_ADDF: \
+case AST_OP_SUBF: \
+case AST_OP_MULTF: \
+case AST_OP_DIVF: \
+case AST_OP_INC: \
+case AST_OP_INCF: \
+case AST_OP_DEC: \
+case AST_OP_DECF: \
+case AST_OP_JMP: \
+case AST_OP_JZ: \
+case AST_OP_JNZ: \
+case AST_OP_CALL: \
+case AST_OP_RET: \
+case AST_OP_CI2F: \
+case AST_OP_CI2U: \
+case AST_OP_CF2I: \
+case AST_OP_CF2U: \
+case AST_OP_CU2I: \
+case AST_OP_CU2F: \
+case AST_OP_GT: \
+case AST_OP_GTF: \
+case AST_OP_LT: \
+case AST_OP_LTF: \
+case AST_OP_EQ: \
+case AST_OP_EQF: \
+case AST_OP_GE: \
+case AST_OP_GEF: \
+case AST_OP_LE: \
+case AST_OP_LEF: \
+case AST_OP_AND: \
+case AST_OP_OR: \
+case AST_OP_NOT: \
+case AST_OP_LOADC: \
+case AST_OP_ALOADC: \
+case AST_OP_LOAD: \
+case AST_OP_STORE: \
+case AST_OP_PUTS: \
+case AST_OP_NATIVE: \
+case AST_OP_HALT \
 
 tasm_translator_t tasm_translator_init() {
     return (tasm_translator_t) {
@@ -68,7 +123,8 @@ tasm_translator_t tasm_translator_init() {
             .metadata = {
                 .date = 0,
                 .hour = 0,
-                .cfuns = {0},
+                .modules = {0},
+                .module_count = 0,
             },
             .const_table = {0},
             .code = {0},
@@ -322,6 +378,15 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_LEF:
             program_push(translator, (opcode_t){.type = OP_LEF});
             break;
+        case AST_OP_AND:
+            program_push(translator, (opcode_t){.type = OP_AND});
+            break;
+        case AST_OP_OR:
+            program_push(translator, (opcode_t){.type = OP_OR});
+            break;
+        case AST_OP_NOT:
+            program_push(translator, (opcode_t){.type = OP_NOT});
+            break;
         case AST_OP_LOADC:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
@@ -438,7 +503,8 @@ void tasm_translate_cfunction(tasm_translator_t* translator, tasm_ast_t* node) {
         .acount = arrlen(node->cfunction.arg_types),
         .symbol_name = node->cfunction.name,
     };
-    translator->program.metadata.cfuns[translator->program.metadata.cfun_count++] = cfun;
+    //FIXME: make it support more than one module.
+    translator->program.metadata.modules[0].cfuns[translator->program.metadata.modules[0].cfun_count++] = cfun;
 }
 
 void tasm_translate_cstruct(tasm_translator_t* translator, tasm_ast_t* node) {
@@ -534,53 +600,7 @@ void tasm_resolve_labels(tasm_translator_t *translator, tasm_ast_t* node, const 
                 tasm_resolve_labels(translator, node->file.lines[i], NULL);
             }
             break;
-        case AST_OP_NOP:
-        case AST_OP_PUSH:
-        case AST_OP_POP:
-        case AST_OP_ADD:
-        case AST_OP_SUB:
-        case AST_OP_MULT:
-        case AST_OP_DIV:
-        case AST_OP_MOD:
-        case AST_OP_DUP:
-        case AST_OP_CLN:
-        case AST_OP_SWAP:
-        case AST_OP_ADDF:
-        case AST_OP_SUBF:
-        case AST_OP_MULTF:
-        case AST_OP_DIVF:
-        case AST_OP_INC:
-        case AST_OP_INCF:
-        case AST_OP_DEC:
-        case AST_OP_DECF:
-        case AST_OP_JMP:
-        case AST_OP_JZ:
-        case AST_OP_JNZ:
-        case AST_OP_CALL:
-        case AST_OP_RET:
-        case AST_OP_CI2F:
-        case AST_OP_CI2U:
-        case AST_OP_CF2I:
-        case AST_OP_CF2U:
-        case AST_OP_CU2I:
-        case AST_OP_CU2F:
-        case AST_OP_GT:
-        case AST_OP_GTF:
-        case AST_OP_LT:
-        case AST_OP_LTF:
-        case AST_OP_EQ:
-        case AST_OP_EQF:
-        case AST_OP_GE:
-        case AST_OP_GEF:
-        case AST_OP_LE:
-        case AST_OP_LEF:
-        case AST_OP_LOADC:
-        case AST_OP_ALOADC:
-        case AST_OP_LOAD:
-        case AST_OP_STORE:
-        case AST_OP_PUTS:
-        case AST_OP_NATIVE:
-        case AST_OP_HALT:
+        AST_OP_CODES:
             translator->symbols.label_address_pointer++;
             break;
         case AST_LABEL_DECL: {
@@ -629,53 +649,7 @@ void tasm_resolve_procs(tasm_translator_t *translator, tasm_ast_t *node) {
                 tasm_resolve_procs(translator, node->file.lines[i]);
             }
             break;
-        case AST_OP_NOP:
-        case AST_OP_PUSH:
-        case AST_OP_POP:
-        case AST_OP_ADD:
-        case AST_OP_SUB:
-        case AST_OP_MULT:
-        case AST_OP_DIV:
-        case AST_OP_MOD:
-        case AST_OP_DUP:
-        case AST_OP_CLN:
-        case AST_OP_SWAP:
-        case AST_OP_ADDF:
-        case AST_OP_SUBF:
-        case AST_OP_MULTF:
-        case AST_OP_DIVF:
-        case AST_OP_INC:
-        case AST_OP_INCF:
-        case AST_OP_DEC:
-        case AST_OP_DECF:
-        case AST_OP_JMP:
-        case AST_OP_JZ:
-        case AST_OP_JNZ:
-        case AST_OP_CALL:
-        case AST_OP_RET:
-        case AST_OP_CI2F:
-        case AST_OP_CI2U:
-        case AST_OP_CF2I:
-        case AST_OP_CF2U:
-        case AST_OP_CU2I:
-        case AST_OP_CU2F:
-        case AST_OP_GT:
-        case AST_OP_GTF:
-        case AST_OP_LT:
-        case AST_OP_LTF:
-        case AST_OP_EQ:
-        case AST_OP_EQF:
-        case AST_OP_GE:
-        case AST_OP_GEF:
-        case AST_OP_LE:
-        case AST_OP_LEF:
-        case AST_OP_LOADC:
-        case AST_OP_ALOADC:
-        case AST_OP_LOAD:
-        case AST_OP_STORE:
-        case AST_OP_PUTS:
-        case AST_OP_NATIVE:
-        case AST_OP_HALT:
+        AST_OP_CODES:
             translator->symbols.proc_address_pointer++;
             break;
         case AST_PROC: {
@@ -735,9 +709,9 @@ size_t get_addr_from_proc_decl_symbol(tasm_translator_t *translator, const char 
     return -1;
 }
 
-void tasm_translator_generate_bin(tasm_translator_t *translator) {
+void tasm_translator_generate_bin(tasm_translator_t *translator, cli_parsed_args_t args) {
     FILE* file;
-    file = fopen("out.bin", "wb");
+    file = fopen(args.output_name, "wb");
 
 //    .METADATA
 
@@ -756,21 +730,34 @@ void tasm_translator_generate_bin(tasm_translator_t *translator) {
 //    .DATA
     
     {
-        uint32_t fun_count = translator->program.metadata.cfun_count;
-        fwrite(&fun_count, sizeof(fun_count), 1, file);
-        for (size_t i = 0; i < fun_count; i++) {
-            const char* fun_name = translator->program.metadata.cfuns[i].symbol_name;
-            uint8_t fun_name_len = strlen(fun_name);
-            uint16_t acount = translator->program.metadata.cfuns[i].acount;
-            uint8_t rtype = translator->program.metadata.cfuns[i].rtype;            
+        translator->program.metadata.module_count = args.clib_count;
+        uint32_t module_count = translator->program.metadata.module_count;
+        fwrite(&module_count, sizeof(module_count), 1, file);
+
+        for (size_t k = 0; k < module_count; k++) {
+            translator->program.metadata.modules[k].module_name = args.clib_names[k];
             
-            fwrite(&fun_name_len, sizeof(fun_name_len), 1, file);
-            fwrite(fun_name, sizeof(fun_name[0]), fun_name_len, file);
-            fwrite(&acount, sizeof(acount), 1, file);
-            fwrite(&rtype, sizeof(rtype), 1, file);
-            for (size_t j = 0; j < acount; j++) {
-                uint8_t atype = translator->program.metadata.cfuns[i].atypes[j];
-                fwrite(&atype, sizeof(atype), 1, file);
+            const char* module_name = translator->program.metadata.modules[k].module_name;
+            uint8_t module_name_len = strlen(module_name);
+            fwrite(&module_name_len, sizeof(module_name_len), 1, file);
+            fwrite(module_name, sizeof(module_name[0]), module_name_len, file);
+
+            uint32_t fun_count = translator->program.metadata.modules[k].cfun_count;
+            fwrite(&fun_count, sizeof(fun_count), 1, file);
+            for (size_t i = 0; i < fun_count; i++) {
+                const char* fun_name = translator->program.metadata.modules[k].cfuns[i].symbol_name;
+                uint8_t fun_name_len = strlen(fun_name);
+                uint16_t acount = translator->program.metadata.modules[k].cfuns[i].acount;
+                uint8_t rtype = translator->program.metadata.modules[k].cfuns[i].rtype;            
+                
+                fwrite(&fun_name_len, sizeof(fun_name_len), 1, file);
+                fwrite(fun_name, sizeof(fun_name[0]), fun_name_len, file);
+                fwrite(&acount, sizeof(acount), 1, file);
+                fwrite(&rtype, sizeof(rtype), 1, file);
+                for (size_t j = 0; j < acount; j++) {
+                    uint8_t atype = translator->program.metadata.modules[k].cfuns[i].atypes[j];
+                    fwrite(&atype, sizeof(atype), 1, file);
+                }
             }
         }
     }

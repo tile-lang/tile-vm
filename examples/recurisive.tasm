@@ -1,0 +1,60 @@
+@cfun i8 cxzczxx f32 f64
+@cfun i8 sda
+@cfun f32 abc
+@cfun i32 YYYDDSADA
+
+jmp main
+
+proc thing
+
+    jz final
+    jnz recursion
+
+    final:   ; top element is zero
+        inc
+        jmp end
+    
+    recursion:
+        dup
+        dec
+        call getFactorial
+        mult
+        ret
+        jmp end
+
+push 45    
+push 45    
+push 45    
+push 45    
+push 45    
+push 45    
+    end:
+    ret
+
+endp
+@cfun i32 bok f32
+
+proc getFactorial
+    jz final
+    jnz recursion
+
+    final:   ; top element is zero
+        inc
+        jmp end
+    
+    recursion:
+        dup
+        dec
+        call getFactorial
+        mult
+        ret
+        jmp end
+    
+    end:
+    ret
+endp
+
+main:
+    push 5
+    call getFactorial
+    

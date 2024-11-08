@@ -1,0 +1,204 @@
+; native c function declerations
+@cfun void InitWindow i32 i32 ptr ; RLAPI void InitWindow(int width, int height, const char *title);
+@cfun i8 WindowShouldClose ; RLAPI bool WindowShouldClose(void);
+@cfun void CloseWindow ; RLAPI void CloseWindow(void);
+
+@cfun void BeginDrawing ; BeginDrawing();
+@cfun void EndDrawing ; EndDrawing();
+@cfun void ClearBackground u32; ClearBackground(RAYWHITE);
+
+@cfun void DrawRectangle i32 i32 i32 i32 u32 ; RLAPI void DrawRectangle(int posX, int posY, int width, int height, Color color); 
+
+@cfun i8 IsKeyPressed i32 ; RLAPI bool IsKeyPressed(int key);
+
+@cfun void SetTargetFPS i32 ; RLAPI void SetTargetFPS(int fps);
+
+; TODO: implement pop and set instructions
+
+jmp _main
+
+proc update_dir
+    push 'W'
+    native 7
+    jnz W_pressed
+    pop
+    push 'A'
+    native 7
+    jnz A_pressed
+    pop
+    push 'S'
+    native 7
+    jnz S_pressed
+    pop
+    push 'D'
+    native 7
+    jnz D_pressed
+    pop
+    ret
+
+
+    W_pressed:
+        pop
+        swap 1
+        swap 2
+        pop
+        push 4
+        swap 2
+        swap 1
+        ret
+    A_pressed:
+        pop
+        swap 1
+        swap 2
+        pop
+        push 2
+        swap 2
+        swap 1
+        ret
+    S_pressed:
+        pop
+        swap 1
+        swap 2
+        pop
+        push 3
+        swap 2
+        swap 1
+        ret
+    D_pressed:
+        pop
+        swap 1
+        swap 2
+        pop
+        push 1
+        swap 2
+        swap 1
+        ret
+endp
+
+proc update_player_pos
+    cln 2
+    push 1
+    eq
+    jnz pos_x_inc
+    pop
+    cln 2
+    push 2
+    eq
+    jnz pos_x_dec
+    pop
+    cln 2
+    push 3
+    eq
+    jnz pos_y_inc
+    pop
+    cln 2
+    push 4
+    eq
+    jnz pos_y_dec
+    pop
+    ret
+
+    pos_x_inc:
+        pop
+        swap 1
+        push 25 ; speed
+        add
+        swap 1
+        ret
+    pos_x_dec:
+        pop
+        swap 1
+        push 25
+        sub
+        swap 1
+        ret
+    pos_y_inc:
+        pop
+        push 25
+        add
+        ret
+    pos_y_dec:
+        pop
+        push 25
+        sub
+        ret
+    
+
+endp
+
+proc update_game
+    ; update game
+    call update_dir
+    call update_player_pos
+
+    ret
+endp
+
+proc draw_game
+    native 3
+    push 0x0014a5e8
+    ;aloadc 4
+    ;push 0x00000000
+    ;e8a514
+    native 5 ; clear background
+
+
+    cln 1
+    cln 1
+    push 25 ; width of head
+    push 25 ; height of head
+    ;aloadc 4
+    push 0xFFFFFFFF
+    native 6 ; draw rect
+
+
+    native 4
+    ret
+endp
+
+_main:
+    loadc 0 ; WIDTH
+    loadc 1 ; HEIGHT
+    aloadc 2 ; TITLE
+    native 0 ; InitWindow
+
+    push 10
+    native 8 ; SetTargetFPS
+
+    ; 1 right
+    ; 2 left
+    ; 3 down
+    ; 4 up
+    push 1 ; count
+    push 1 ; dir
+    push 25 ; snake_x
+    push 25 ; snake_y
+
+
+    push 1 ; temprory true
+    loop:
+        pop
+        call update_game
+        call draw_game
+
+        native 1 ; WindowShouldClose
+        jz loop
+
+
+    native 2 ; CloseWindow
+    hlt
+
+; WIDTH
+@data 800
+; HEIGHT
+@data 600
+; TITLE
+@data "Hello from Tasm"
+@data 0
+
+; BG_COLOR
+@data 255
+@data 1
+@data 1
+@data 255
+@data 0

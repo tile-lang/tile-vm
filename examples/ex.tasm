@@ -1,0 +1,4 @@
+push 0x0078
+push 12
+add
+hlt

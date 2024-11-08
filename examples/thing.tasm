@@ -1,0 +1,20 @@
+jmp _main
+
+proc sayHelloAndNum
+    aloadc 0
+    puts
+    ret
+endp
+
+
+_main:
+    push 15
+    push 15
+    add
+    call sayHelloAndNum
+    hlt
+
+@data "Hello, World!
+@data 'a'
+@data 12 ; newline
+@data 0 ; terminating string
