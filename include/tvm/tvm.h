@@ -562,7 +562,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
-        if (vm->stack[vm->sp - 1].ui32 == 0)
+        if (vm->stack[--vm->sp].ui32 == 0)
             vm->ip = inst.operand.ui32;
         else 
             vm->ip++;
@@ -572,7 +572,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_STACK_UNDERFLOW;
         else if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
-        if (vm->stack[vm->sp - 1].ui32 != 0)
+        if (vm->stack[--vm->sp].ui32 != 0)
             vm->ip = inst.operand.ui32;
         else 
             vm->ip++;
