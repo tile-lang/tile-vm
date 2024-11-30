@@ -73,6 +73,7 @@ typedef struct tasm_ast{
         AST_OP_ALOADC,
         AST_OP_LOAD,
         AST_OP_STORE,
+        AST_OP_HALLOC,
         AST_OP_PUTS,
         AST_OP_NATIVE,
         AST_OP_HALT,
@@ -373,6 +374,9 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             if (node->inst.operand) {
                 tasm_ast_show(node->inst.operand, indent + 1);
             }
+            break;
+        case AST_OP_HALLOC:
+            printf("HALLOC\n");
             break;
         case AST_OP_PUTS:
             printf("PUTS\n");
