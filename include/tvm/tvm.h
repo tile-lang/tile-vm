@@ -8,6 +8,8 @@
 #define ARENA_IMPLEMENTATION
 #include <common/arena.h>
 
+// #include <tvm/tgc.h>
+
 #define TVM_STACK_CAPACITY 1024
 #define TVM_PROGRAM_CAPACITY 1024
 #define TVM_METADATA_MAX_CFUN_CAPACITY 512
@@ -87,6 +89,9 @@ typedef enum {
     OP_ALOADC, // load address of constant to stack
     OP_LOAD,   // load to stack
     OP_STORE,  // store to local variable
+
+    OP_HALLOC,
+
     /* print to standart output */
     OP_PUTS,
     /* native */
@@ -106,7 +111,7 @@ typedef enum {
 typedef struct {
     uint8_t type; //stack_obj_type_t
     union {
-        intptr_t ui64; // usually for addresses
+        uintptr_t ui64; // usually for addresses
         uint32_t ui32;
         int32_t  i32;
         float    f32;
@@ -210,7 +215,6 @@ tvm_frame_t* tvm_frame_init();
 tvm_frame_t* tvm_frame_next(tvm_frame_t* node);
 tvm_frame_t* tvm_frame_prev(tvm_frame_t* node);
 void tvm_frame_free(tvm_frame_t* last);
-// void tvm_frame_destroy_last(tvm_frame_t* last);
 
 void tvm_run(tvm_t* vm);
 void tvm_stack_dump(tvm_t* vm);
@@ -223,6 +227,9 @@ void tci_native_call(tvm_t* vm, uint32_t id, void* rvalue, void** avalues);
 #include <stdlib.h>
 #include <string.h>
 #include <common/cmd_colors.h>
+
+#define TGC_IMPLEMENTATION
+#include <tvm/tgc.h>
 
 void tvm_load_program_from_memory(tvm_t* vm, const opcode_t* code, size_t program_size) {
     vm->program.size = program_size;
@@ -394,7 +401,6 @@ void tvm_destroy(tvm_t* vm) {
 exception_t tvm_exec_opcode(tvm_t* vm) {
     opcode_t inst = vm->program.code[vm->ip];
     // printf("inst: %d\n", inst.type);
-    tvm_stack_dump(vm);
     switch (inst.type) {
     case OP_NOP:
         /* no operation */
@@ -776,6 +782,14 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->frame->local_vars[inst.operand.ui32] = vm->stack[--vm->sp];
         vm->ip++;
         break;
+    case OP_HALLOC:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].ui64 = tgc_create_block(vm->stack[vm->sp - 2].ui32, vm->stack[vm->sp - 1].ui32);
+        vm->stack[vm->sp - 2].type = STACK_OBJ_TYPE_DATA_ADDRESS;
+        vm->sp--;
+        vm->ip++;
+        break;
     case OP_PUTS:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
@@ -817,12 +831,15 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         return EXCEPT_INVALID_INSTRUCTION;
         break;
     }
-
+    // tvm_stack_dump(vm);
     return EXCEPT_OK;
 }
 
 tvm_frame_t* tvm_frame_init() {
-    return (tvm_frame_t*)malloc(sizeof(tvm_frame_t));
+    tvm_frame_t* frame = (tvm_frame_t*)malloc(sizeof(tvm_frame_t));
+    memset(frame->local_vars, 0, sizeof(object_t)*TVM_MAX_LOCAL_VAR);
+    // frame->local_vars->type = STACK_OBJ_NO_OPERAND
+    return frame;
 }
 
 tvm_frame_t* tvm_frame_next(tvm_frame_t* node) {
@@ -843,19 +860,29 @@ void tvm_frame_free(tvm_frame_t* last) {
         free(last);
 }
 
-// void tvm_frame_destroy_last(tvm_frame_t* last) {
-//     last = last->prev;
-//     tvm_frame_free(last->next);
-// }
+void tgc_collect(tvm_frame_t* root) {
+    // Mark phase: Traverse all variables
+    for (size_t i = 0; i < TVM_MAX_LOCAL_VAR; i++) {
+        if (root->local_vars[i].type == STACK_OBJ_TYPE_DATA_ADDRESS)
+            tgc_mark((void*)(root->local_vars[i].ui64));
+    }
+    // Sweep phase: Free unmarked blocks
+    tgc_sweep();
+}
 
 void tvm_run(tvm_t* vm) {
+    static unsigned int tgc_counter = 0;
     while (!vm->halted && vm->ip <= vm->program.size) {
         exception_t except = tvm_exec_opcode(vm);
         if (except != EXCEPT_OK) {
             fprintf(stderr, CLR_RED"ERROR: Exception occured "CLR_END "%s\n", exception_to_cstr(except));
             exit(1);
         }
+        if (tgc_counter % 4 == 0)
+            tgc_collect(vm->frame);
+        tgc_counter++;
     }
+    tgc_sweep();
     tvm_frame_free(vm->frame);
     fprintf(stdout, "Program halted " CLR_GREEN"succesfully...\n"CLR_END);
 }
