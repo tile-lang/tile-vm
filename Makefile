@@ -12,7 +12,7 @@ run: tvm
 	./$(BUILD_DIR)/tvm.exe
 tvm:
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
-	$(CC) $(CFLAGS) ./src/tvm.c ./src/tci.c -I "./include" -I "./$(LIBFFI)/include" -o ./$(BUILD_DIR)/tvm.exe -L ./$(LIBFFI)/lib -llibffi
+	$(CC) $(CFLAGS) ./src/tvm.c ./src/tci.c -I "./include" -I "./$(LIBFFI)/include" -I ./extern/stb/include -o ./$(BUILD_DIR)/tvm.exe -L ./$(LIBFFI)/lib -llibffi
 
 tasm:
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)

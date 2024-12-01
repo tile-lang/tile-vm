@@ -79,6 +79,7 @@ typedef enum {
     TOKEN_OP_ALOADC,
     TOKEN_OP_LOAD,
     TOKEN_OP_STORE,
+    TOKEN_OP_HALLOC,
     TOKEN_OP_PUTS,
     TOKEN_OP_NATIVE,
     TOKEN_OP_HALT,
