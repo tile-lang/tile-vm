@@ -87,6 +87,11 @@ void tgc_sweep() {
     }
 }
 
+void tgc_destroy() {
+    tgc_sweep();
+    arrfree(__heap);
+}
+
 
 #endif//TGC_IMPLEMENTATION
 

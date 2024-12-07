@@ -882,7 +882,7 @@ void tvm_run(tvm_t* vm) {
             tgc_collect(vm->frame);
         tgc_counter++;
     }
-    tgc_sweep();
+    tgc_destroy();
     tvm_frame_free(vm->frame);
     fprintf(stdout, "Program halted " CLR_GREEN"succesfully...\n"CLR_END);
 }
