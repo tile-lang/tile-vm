@@ -777,7 +777,7 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative) {
     switch (type)
     {
     case TOKEN_DECIMAL_NUMBER: {
-        int val = atoi(text_val);
+        int32_t val = atoi(text_val);
         value = *(uint32_t*)&val;
         break;
     }
@@ -787,12 +787,12 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative) {
         break;
     }
     case TOKEN_HEX_NUMBER: {
-        int val = strtol(text_val, NULL, 16);
+        int32_t val = strtoll(text_val, NULL, 16);
         value = *(uint32_t*)&val;
         break;
     }
     case TOKEN_BINARY_NUMBER: {
-        int val = strtol(text_val, NULL, 2);
+        int32_t val = strtoll(text_val, NULL, 2);
         value = *(uint32_t*)&val;
         break;
     }
