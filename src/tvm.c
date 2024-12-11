@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#include <windows.h>
+// #include <locale.h>
+#endif
+
 #define TVM_IMPLEMENTATION
 #include <tvm/tvm.h>
 #include <tvm/tci.h>
@@ -9,6 +14,11 @@ extern tci_t tci_instance;
 
 int main(int argc, char **argv) {
     
+#ifdef _WIN32
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     cli_parsed_args_t args = {
         .compile = 0,
         .file_name = NULL,
