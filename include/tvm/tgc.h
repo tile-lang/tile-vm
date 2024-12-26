@@ -12,15 +12,21 @@ _Static_assert(sizeof(void*) == sizeof(uintptr_t), "Incompetible pointer size on
 
 typedef struct gc_block gc_block;
 
+#pragma pack(push,1) // to make it correctly aligned with hand
 struct gc_block {
-    size_t size; // size of allocated memory in bytes
+    /*
+        The placement and allignment of this struct is fucking very important
+        We do so many dangerous memory arithmetic with them,
+        and all of them is managed by our custom assembly language called TASM which is now more dangerous than good old C
+        despite it is written in C
+    */
     void* value;
-    
+    uint64_t pointer_count;
+    uint64_t size; // size of allocated memory in bytes
     gc_block* pointers;
-    size_t pointer_count;
-
-    bool marked;
+    int64_t marked;
 };
+#pragma pack(pop)
 
 uintptr_t tgc_create_block(size_t size, size_t pointer_count);
 void tgc_mark(void* ptr);
@@ -37,7 +43,7 @@ size_t __heap_block_count = 0;
 uintptr_t tgc_create_block(size_t size, size_t pointer_count) {
     gc_block block = (gc_block) {
         .size = size,
-        .value = NULL,
+        .value = malloc(size),
         .pointers = NULL,
         .pointer_count = pointer_count,
         .marked = false,
