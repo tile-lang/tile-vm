@@ -114,6 +114,7 @@ case AST_OP_ALOADC: \
 case AST_OP_LOAD: \
 case AST_OP_STORE: \
 case AST_OP_HALLOC: \
+case AST_OP_DEREF: \
 case AST_OP_PUTS: \
 case AST_OP_NATIVE: \
 case AST_OP_HALT \
@@ -430,6 +431,9 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             break;
         case AST_OP_HALLOC:
             program_push(translator, (opcode_t){.type = OP_HALLOC});
+            break;
+        case AST_OP_DEREF:
+            program_push(translator, (opcode_t){.type = OP_DEREF});
             break;
         case AST_OP_PUTS:
             program_push(translator, (opcode_t){.type = OP_PUTS});

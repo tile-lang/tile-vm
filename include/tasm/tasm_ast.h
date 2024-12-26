@@ -74,6 +74,7 @@ typedef struct tasm_ast{
         AST_OP_LOAD,
         AST_OP_STORE,
         AST_OP_HALLOC,
+        AST_OP_DEREF,
         AST_OP_PUTS,
         AST_OP_NATIVE,
         AST_OP_HALT,

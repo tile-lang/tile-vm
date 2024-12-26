@@ -602,6 +602,8 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_HALLOC: tag = AST_OP_HALLOC;
         break;
+    case TOKEN_OP_DEREF: tag = AST_OP_DEREF;
+        break;
     case TOKEN_OP_PUTS: tag = AST_OP_PUTS;
         break;
     case TOKEN_OP_NATIVE: tag = AST_OP_NATIVE;
