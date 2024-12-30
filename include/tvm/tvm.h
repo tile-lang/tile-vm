@@ -86,6 +86,12 @@ typedef enum {
     OP_AND,
     OP_OR,
     OP_NOT,
+    /* binary */
+    OP_BAND,
+    OP_BOR,
+    OP_BNOT,
+    OP_LSHFT,
+    OP_RSHFT,
     /* load store */
     OP_LOADC,  // load constant to stack
     OP_ALOADC, // load address of constant to stack
@@ -94,6 +100,7 @@ typedef enum {
 
     OP_HALLOC,
     OP_DEREF,
+    OP_HSET,
 
     /* print to standart output */
     OP_PUTS,
@@ -753,6 +760,40 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->stack[vm->sp - 1].i32 = !vm->stack[vm->sp - 1].i32;
         vm->ip++;
         break;
+    case OP_BAND:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 &= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_BOR:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 |= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_BNOT:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].i32 = ~vm->stack[vm->sp - 1].i32;
+        vm->ip++;
+        break;
+    case OP_LSHFT:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 <<= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_RSHFT:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 >>= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
     case OP_LOADC:
         if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
@@ -799,6 +840,15 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->stack[vm->sp - 1].ui64 = (uint64_t)(*((uint64_t*)(vm->stack[vm->sp - 1].ui64)));
         vm->ip++;
         break;
+    case OP_HSET:
+        if (vm->sp < 3)
+            return EXCEPT_STACK_UNDERFLOW;
+        register uint32_t offset = vm->stack[vm->sp - 1].i32;     // offset
+        void* addr = (void*)(vm->stack[vm->sp - 2].ui64 + (uintptr_t)offset); // beginning address of the value (it should be)
+        memmove(addr, &vm->stack[vm->sp - 3].ui64, sizeof(uintptr_t));
+        vm->sp -= 3;
+        vm->ip++;
+        break;
     case OP_PUTS:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
@@ -840,7 +890,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         return EXCEPT_INVALID_INSTRUCTION;
         break;
     }
-    tvm_stack_dump(vm);
+    // tvm_stack_dump(vm);
     return EXCEPT_OK;
 }
 
@@ -889,8 +939,8 @@ void tvm_run(tvm_t* vm) {
             exit(1);
         }
         // TODO: find a better algorithm to call garbage collector!
-        if (tgc_counter % 17 == 0)
-            tgc_collect(vm->frame);
+        // if (tgc_counter > 500)
+        //     tgc_collect(vm->frame);
         tgc_counter++;
     }
     tgc_destroy();

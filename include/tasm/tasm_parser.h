@@ -584,6 +584,16 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_NOT: tag = AST_OP_NOT;
         break;
+    case TOKEN_OP_BAND: tag = AST_OP_BAND;
+        break;
+    case TOKEN_OP_BOR: tag = AST_OP_BOR;
+        break;
+    case TOKEN_OP_BNOT: tag = AST_OP_BNOT;
+        break;
+    case TOKEN_OP_LSHFT: tag = AST_OP_LSHFT;
+        break;
+    case TOKEN_OP_RSHFT: tag = AST_OP_RSHFT;
+        break;
     case TOKEN_OP_LOADC: tag = AST_OP_LOADC;
         operand = tasm_parse_int_operand(parser);
         if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_LOAD_WRONG_OPERAND, "Wrong operand for loadc insturction");
@@ -603,6 +613,8 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
     case TOKEN_OP_HALLOC: tag = AST_OP_HALLOC;
         break;
     case TOKEN_OP_DEREF: tag = AST_OP_DEREF;
+        break;
+    case TOKEN_OP_HSET: tag = AST_OP_HSET;
         break;
     case TOKEN_OP_PUTS: tag = AST_OP_PUTS;
         break;
