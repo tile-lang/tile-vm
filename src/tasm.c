@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
     ast_arena = arena_init(1024);
     // FIXME: do not use arena for file reading!!!
-    src_arena = arena_init(4096);
+    src_arena = arena_init(4096*2);
 
     char* content = read_file_content(args.file_name);
 

@@ -109,11 +109,18 @@ case AST_OP_LEF: \
 case AST_OP_AND: \
 case AST_OP_OR: \
 case AST_OP_NOT: \
+case AST_OP_BAND: \
+case AST_OP_BOR: \
+case AST_OP_BNOT: \
+case AST_OP_LSHFT: \
+case AST_OP_RSHFT: \
 case AST_OP_LOADC: \
 case AST_OP_ALOADC: \
 case AST_OP_LOAD: \
 case AST_OP_STORE: \
 case AST_OP_HALLOC: \
+case AST_OP_DEREF: \
+case AST_OP_HSET: \
 case AST_OP_PUTS: \
 case AST_OP_NATIVE: \
 case AST_OP_HALT \
@@ -388,6 +395,21 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
         case AST_OP_NOT:
             program_push(translator, (opcode_t){.type = OP_NOT});
             break;
+        case AST_OP_BAND:
+            program_push(translator, (opcode_t){.type = OP_BAND});
+            break;
+        case AST_OP_BOR:
+            program_push(translator, (opcode_t){.type = OP_BOR});
+            break;
+        case AST_OP_BNOT:
+            program_push(translator, (opcode_t){.type = OP_BNOT});
+            break;
+        case AST_OP_LSHFT:
+            program_push(translator, (opcode_t){.type = OP_LSHFT});
+            break;
+        case AST_OP_RSHFT:
+            program_push(translator, (opcode_t){.type = OP_RSHFT});
+            break;
         case AST_OP_LOADC:
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
@@ -430,6 +452,12 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             break;
         case AST_OP_HALLOC:
             program_push(translator, (opcode_t){.type = OP_HALLOC});
+            break;
+        case AST_OP_DEREF:
+            program_push(translator, (opcode_t){.type = OP_DEREF});
+            break;
+        case AST_OP_HSET:
+            program_push(translator, (opcode_t){.type = OP_HSET});
             break;
         case AST_OP_PUTS:
             program_push(translator, (opcode_t){.type = OP_PUTS});
