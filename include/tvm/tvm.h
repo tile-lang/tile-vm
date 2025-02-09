@@ -24,6 +24,8 @@ typedef enum {
     EXCEPT_OK,
     EXCEPT_STACK_UNDERFLOW,
     EXCEPT_STACK_OVERFLOW,
+    EXCEPT_RETURN_STACK_UNDERFLOW,
+    EXCEPT_RETURN_STACK_OVERFLOW,
     EXCEPT_INVALID_INSTRUCTION,
     EXCEPT_INVALID_INSTRUCTION_ACCESS,
     EXCEPT_INVALID_LOCAL_VAR_ACCESS,
@@ -84,6 +86,12 @@ typedef enum {
     OP_AND,
     OP_OR,
     OP_NOT,
+    /* binary */
+    OP_BAND,
+    OP_BOR,
+    OP_BNOT,
+    OP_LSHFT,
+    OP_RSHFT,
     /* load store */
     OP_LOADC,  // load constant to stack
     OP_ALOADC, // load address of constant to stack
@@ -91,6 +99,8 @@ typedef enum {
     OP_STORE,  // store to local variable
 
     OP_HALLOC,
+    OP_DEREF,
+    OP_HSET,
 
     /* print to standart output */
     OP_PUTS,
@@ -585,7 +595,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         break;
     case OP_CALL: {
         if (vm->rsp >= RETURN_STACK_CAPACITY)
-            return EXCEPT_STACK_OVERFLOW;
+            return EXCEPT_RETURN_STACK_OVERFLOW;
         else if (inst.operand.ui32 >= vm->program.size)
             return EXCEPT_INVALID_INSTRUCTION_ACCESS;
         vm->return_stack[vm->rsp++] = vm->ip + 1;
@@ -595,7 +605,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     }
     case OP_RET: {
         if (vm->rsp < 1)
-            return EXCEPT_STACK_UNDERFLOW;
+            return EXCEPT_RETURN_STACK_UNDERFLOW;
         vm->ip = vm->return_stack[--vm->rsp];
         vm->frame = tvm_frame_prev(vm->frame);
         break;
@@ -750,6 +760,40 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->stack[vm->sp - 1].i32 = !vm->stack[vm->sp - 1].i32;
         vm->ip++;
         break;
+    case OP_BAND:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 &= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_BOR:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 |= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_BNOT:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].i32 = ~vm->stack[vm->sp - 1].i32;
+        vm->ip++;
+        break;
+    case OP_LSHFT:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 <<= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
+    case OP_RSHFT:
+        if (vm->sp < 2)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 2].i32 >>= vm->stack[vm->sp - 1].i32;
+        vm->sp--;
+        vm->ip++;
+        break;
     case OP_LOADC:
         if (vm->sp >= TVM_STACK_CAPACITY)
             return EXCEPT_STACK_OVERFLOW;
@@ -788,6 +832,21 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->stack[vm->sp - 2].ui64 = tgc_create_block(vm->stack[vm->sp - 2].ui32, vm->stack[vm->sp - 1].ui32);
         vm->stack[vm->sp - 2].type = STACK_OBJ_TYPE_DATA_ADDRESS;
         vm->sp--;
+        vm->ip++;
+        break;
+    case OP_DEREF:
+        if (vm->sp <= 0)
+            return EXCEPT_STACK_UNDERFLOW;
+        vm->stack[vm->sp - 1].ui64 = (uint64_t)(*((uint64_t*)(vm->stack[vm->sp - 1].ui64)));
+        vm->ip++;
+        break;
+    case OP_HSET:
+        if (vm->sp < 3)
+            return EXCEPT_STACK_UNDERFLOW;
+        register uint32_t offset = vm->stack[vm->sp - 1].i32;     // offset
+        void* addr = (void*)(vm->stack[vm->sp - 2].ui64 + (uintptr_t)offset); // beginning address of the value (it should be)
+        memmove(addr, &vm->stack[vm->sp - 3].ui64, sizeof(uintptr_t));
+        vm->sp -= 3;
         vm->ip++;
         break;
     case OP_PUTS:
@@ -872,14 +931,16 @@ void tgc_collect(tvm_frame_t* root) {
 
 void tvm_run(tvm_t* vm) {
     static unsigned int tgc_counter = 0;
+    printf("test: %d\n", sizeof(gc_block));
     while (!vm->halted && vm->ip <= vm->program.size) {
         exception_t except = tvm_exec_opcode(vm);
         if (except != EXCEPT_OK) {
             fprintf(stderr, CLR_RED"ERROR: Exception occured "CLR_END "%s\n", exception_to_cstr(except));
             exit(1);
         }
-        if (tgc_counter % 4 == 0)
-            tgc_collect(vm->frame);
+        // TODO: find a better algorithm to call garbage collector!
+        // if (tgc_counter > 500)
+        //     tgc_collect(vm->frame);
         tgc_counter++;
     }
     tgc_destroy();
@@ -890,7 +951,7 @@ void tvm_run(tvm_t* vm) {
 void tvm_stack_dump(tvm_t *vm) {
     fprintf(stdout, "stack:\n");
     for (size_t i = 0; i < vm->sp; i++) {
-        fprintf(stdout, "0x%08x: %d (as int), %f (as float)\n", i, vm->stack[i].i32, vm->stack[i].f32); // Ask 0x%08zx you can delete this comment
+        fprintf(stdout, "0x%08x: %d (as int), %f (as float), %p (as ptr)\n", i, vm->stack[i].i32, vm->stack[i].f32, vm->stack[i].ui64);
     }
 }
 
