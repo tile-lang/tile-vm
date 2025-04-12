@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
         .file_name = NULL,
         .output_name = NULL,
         .clib_count = 0,
+        .ast_show = false,
     };
 
     if (!cli_tasm_parse_command_line(&args, &argc, &argv))
@@ -53,7 +54,7 @@ int main(int argc, char **argv) {
 
     ast_arena = arena_init(1024);
     // FIXME: do not use arena for file reading!!!
-    src_arena = arena_init(4096*2);
+    src_arena = arena_init(4096*16);
 
     char* content = read_file_content(args.file_name);
 
@@ -83,7 +84,9 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    tasm_ast_show(ast, 0);
+    if (args.ast_show) {
+        tasm_ast_show(ast, 0);
+    }
 
 
     tasm_translator_t translator = tasm_translator_init();
