@@ -5,6 +5,7 @@
 #include <tasm/tasm_ast.h>
 #include <common/cmd_colors.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 /*
     this err codes are between 1000 - 10000
@@ -802,12 +803,22 @@ tasm_ast_t* tasm_parse_num_lit(tasm_parser_t* parser, bool negative) {
     }
     case TOKEN_HEX_NUMBER: {
         int32_t val = strtoll(text_val, NULL, 16);
-        value = *(uint32_t*)&val;
+        uint32_t beval = *(uint32_t*)&val;
+        bool is_le = _is_little_endian();
+        if (is_le) {
+            beval = swap_endian_uint32(val);
+        }
+        value = beval;
         break;
     }
     case TOKEN_BINARY_NUMBER: {
         int32_t val = strtoll(text_val, NULL, 2);
-        value = *(uint32_t*)&val;
+        uint32_t beval = *(uint32_t*)&val;
+        bool is_le = _is_little_endian();
+        if (is_le) {
+            beval = swap_endian_uint32(val);
+        }
+        value = beval;
         break;
     }
     
