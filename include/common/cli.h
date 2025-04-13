@@ -15,7 +15,7 @@ typedef struct {
     const char* clib_names[MAX_LIB_COUNT];
     size_t clib_count;
 
-
+    bool ast_show;
     bool compile; // that will run tasmc (tasm to nasm)
 } cli_parsed_args_t;
 
@@ -41,7 +41,7 @@ bool cli_tasm_usage(int argc) {
         fprintf(stdout, "    tasm <file.tasm>\n");
         return false;
     }
-    else if (argc >= 5) {
+    else if (argc >= 7) {
         fprintf(stdout, CLR_YELLOW"Warning: "CLR_END "more than expected input\n");
         fprintf(stdout, "    tasm <file.tasm>\n");
     }
@@ -51,12 +51,12 @@ bool cli_tasm_usage(int argc) {
 bool cli_tvm_usage(int argc) {
     if (argc < 2) {
         fprintf(stdout, CLR_RED"Invalid usage!"CLR_END" can not found input file.\n");
-        fprintf(stdout, "    tvm <out.bin>\n");
+        fprintf(stdout, "    tvm <input.bin>\n");
         return false;
     }
-    else if (argc >= 4) {
+    else {
         fprintf(stdout, CLR_YELLOW"Warning: "CLR_END" more than expected input\n");
-        fprintf(stdout, "    tvm <out.bin>\n");
+        fprintf(stdout, "    tvm <input.bin>\n");
     }
     return true;
 }
@@ -81,6 +81,8 @@ bool cli_tasm_parse_command_line(cli_parsed_args_t* args, int* argc, char*** arg
             args->compile = true;
         else if (compare(arg, "-l"))
             args->clib_names[args->clib_count++] = cli_shift(argc, argv);
+        else if (compare(arg, "-ast"))
+            args->ast_show = true;
         else
             args->file_name = arg;
     }
