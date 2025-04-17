@@ -866,10 +866,13 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
 
         switch (byte_size)
         {
-        case sizeof(uint8_t): *(uint8_t*)((uint8_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
-        case sizeof(uint32_t): *(uint32_t*)((uint32_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
 #ifdef __x86_64__
-        case sizeof(uint64_t): *(uint64_t*)((uint64_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui64; break;
+        case sizeof(uint32_t): *(uint32_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
+        case sizeof(uint8_t): *(uint8_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
+        case sizeof(uint64_t): *(uint64_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui64; break;
+#elif defined(__i386__)
+        case sizeof(uint32_t): *(uint32_t*)((uint32_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
+        case sizeof(uint8_t): *(uint8_t*)((uint8_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
 #endif
         default: return EXCEPT_INVALID_PRIMITIVE_SIZE;
         }
