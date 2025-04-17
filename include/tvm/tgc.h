@@ -13,7 +13,6 @@ _Static_assert(sizeof(void*) == sizeof(uintptr_t), "Incompetible pointer size on
 
 typedef struct gc_block gc_block;
 
-#pragma pack(push,1) // to make it correctly aligned with hand
 struct gc_block {
     /*
         The placement and allignment of this struct is fucking very important
@@ -27,7 +26,6 @@ struct gc_block {
     gc_block* pointers;
     int64_t marked;
 };
-#pragma pack(pop)
 
 uintptr_t tgc_create_block(size_t size, size_t pointer_count);
 void tgc_mark(void* ptr);
@@ -59,9 +57,15 @@ uintptr_t tgc_create_block(size_t size, size_t pointer_count) {
     uintptr_t block_addr = (uintptr_t)&__heap[__heap_block_count];
     __heap_block_count += pointer_count + 1;
 
-    printf("heap_size: %u\n", __heap_block_count);
+    if ((uintptr_t)block.value % 8 != 0) {
+        fprintf(stderr, "tgc_create_block: Misaligned value=%p\n", block.value);
+    }
+
+    printf("heap_size: %llu\n", __heap_block_count);
     // TODO: set the array capacity of heap bigger than 10 (10 is default, use arrsetcap)
-    printf("cap: %u\n", arrcap(__heap));
+    printf("cap: %llu\n", arrcap(__heap));
+    printf("last_block_addr: %p\n", block_addr);
+    printf("sizeof(uintptr_t): %d\nsizeof(uint64_t): %d\n", sizeof(uintptr_t), sizeof(uint64_t));
     return block_addr;
 }
 
@@ -95,7 +99,7 @@ void tgc_sweep() {
 }
 
 void tgc_destroy() {
-    tgc_sweep();
+    // tgc_sweep();
     arrfree(__heap);
 }
 
