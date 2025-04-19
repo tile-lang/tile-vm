@@ -34,6 +34,8 @@ typedef enum {
     EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS,
     EXCEPT_INVALID_STACK_ACCESS,
     EXCEPT_DIVISION_BY_ZERO,
+    EXCEPT_INVALID_PRIMITIVE_SIZE,
+    EXCEPT_INVALID_ARRAY_INDEX,
 } exception_t;
 
 typedef uint32_t word_t;
@@ -121,6 +123,7 @@ typedef enum {
 typedef struct {
     uint8_t type; //stack_obj_type_t
     union {
+        uint8_t ui8;
         uintptr_t ui64; // usually for addresses
         uint32_t ui32;
         int32_t  i32;
@@ -371,6 +374,10 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_STACK_ACCESS";
     case EXCEPT_DIVISION_BY_ZERO:
         return "EXCEPT_DIVISION_BY_ZERO";
+    case EXCEPT_INVALID_PRIMITIVE_SIZE:
+        return "EXCEPT_INVALID_PRIMITIVE_SIZE";
+    case EXCEPT_INVALID_ARRAY_INDEX:
+        return "EXCEPT_INVALID_ARRAY_INDEX";
         
     default:
         fprintf(stderr, "Unhandled exception string on function: exception_to_cstr\n");
@@ -837,16 +844,39 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
     case OP_DEREF:
         if (vm->sp <= 0)
             return EXCEPT_STACK_UNDERFLOW;
-        vm->stack[vm->sp - 1].ui64 = (uint64_t)(*((uint64_t*)(vm->stack[vm->sp - 1].ui64)));
+        vm->stack[vm->sp - 1].ui64 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64)));
         vm->ip++;
         break;
     case OP_HSET:
-        if (vm->sp < 3)
+        if (vm->sp < 4)
             return EXCEPT_STACK_UNDERFLOW;
-        register uint32_t offset = vm->stack[vm->sp - 1].i32;     // offset
-        void* addr = (void*)(vm->stack[vm->sp - 2].ui64 + (uintptr_t)offset); // beginning address of the value (it should be)
-        memmove(addr, &vm->stack[vm->sp - 3].ui64, sizeof(uintptr_t));
-        vm->sp -= 3;
+        uint32_t byte_size = vm->stack[vm->sp - 1].i32;  // byte_size
+        uint32_t index = vm->stack[vm->sp - 2].i32;      // index
+        uint32_t offset = (uint32_t)(index * byte_size);
+        gc_block* addr = (gc_block*)(vm->stack[vm->sp - 3].ui64); // beginning address of the value (it should be)
+        
+        uint64_t size = addr->size;
+        printf("size: %d\n", size);
+        printf("offset: %d\n", offset);
+        printf("byte_size: %d\n", byte_size);
+        printf("index: %d\n", index);
+        if (offset >= size) {
+            return EXCEPT_INVALID_ARRAY_INDEX;
+        }
+
+        switch (byte_size)
+        {
+#ifdef __x86_64__
+        case sizeof(uint32_t): *(uint32_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
+        case sizeof(uint8_t): *(uint8_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
+        case sizeof(uint64_t): *(uint64_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui64; break;
+#elif defined(__i386__)
+        case sizeof(uint32_t): *(uint32_t*)((uint32_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
+        case sizeof(uint8_t): *(uint8_t*)((uint8_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
+#endif
+        default: return EXCEPT_INVALID_PRIMITIVE_SIZE;
+        }
+        vm->sp -= 4;
         vm->ip++;
         break;
     case OP_PUTS:
@@ -859,7 +889,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         //FIXME: support multi modules
         tvm_program_cfun_t native_func = vm->program.metadata.modules[0].cfuns[inst.operand.ui32];
         uint32_t native_func_count = vm->program.metadata.modules[0].cfun_count;
-        printf("%d\n", native_func_count);
+        // printf("%d\n", native_func_count);
         if (vm->sp < native_func.acount)
             return EXCEPT_STACK_UNDERFLOW;
         else if (vm->sp >= TVM_STACK_CAPACITY)
@@ -939,8 +969,8 @@ void tvm_run(tvm_t* vm) {
             exit(1);
         }
         // TODO: find a better algorithm to call garbage collector!
-        // if (tgc_counter > 500)
-        //     tgc_collect(vm->frame);
+        if (tgc_counter % 20 == 0)
+            // tgc_collect(vm->frame);
         tgc_counter++;
     }
     tgc_destroy();
