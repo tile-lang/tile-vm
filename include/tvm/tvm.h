@@ -961,7 +961,6 @@ void tgc_collect(tvm_frame_t* root) {
 
 void tvm_run(tvm_t* vm) {
     static unsigned int tgc_counter = 0;
-    printf("test: %d\n", sizeof(gc_block));
     while (!vm->halted && vm->ip <= vm->program.size) {
         exception_t except = tvm_exec_opcode(vm);
         if (except != EXCEPT_OK) {

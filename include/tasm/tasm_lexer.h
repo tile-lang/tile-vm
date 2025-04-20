@@ -239,11 +239,31 @@ tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
             );
             break;
         }
-        temp_val[len] = lexer->current_char;
-        len++;
+        // FIXME: '\0' doesn't work for some reason?!
+        if (lexer->current_char == '\\') {
+            tasm_lexer_advance(lexer); // advance to escape character
+            switch (lexer->current_char) {
+                case 'n':  temp_val[len++] = '\n'; break;
+                case 't':  temp_val[len++] = '\t'; break;
+                case 'r':  temp_val[len++] = '\r'; break;
+                case '\\': temp_val[len++] = '\\'; break;
+                case '"':  temp_val[len++] = '"';  break;
+                case '0':  temp_val[len++] = '\0'; break;
+                default:
+                    printf("%s:%d:%d: "CLR_RED"ERROR"CLR_END" unknown escape sequence '\\%c'\n",
+                        lexer->loc.file_name,
+                        lexer->loc.row,
+                        lexer->loc.col,
+                        lexer->current_char);
+                    break;
+            }
+        } else {
+            temp_val[len++] = lexer->current_char;
+        }
+
         tasm_lexer_advance(lexer);
     }
-    // tasm_lexer_advance(lexer);
+
     temp_val[len] = '\0';
     len++;
     char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
