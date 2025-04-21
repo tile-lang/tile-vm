@@ -611,6 +611,14 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         operand = tasm_parse_int_operand(parser);
         if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_STORE_WRONG_OPERAND, "Wrong operand for store insturction");
         break;
+    case TOKEN_OP_GLOAD: tag = AST_OP_GLOAD;
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_LOAD_WRONG_OPERAND, "Wrong operand for gload insturction");
+        break;
+    case TOKEN_OP_GSTORE: tag = AST_OP_GSTORE;
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_STORE_WRONG_OPERAND, "Wrong operand for gstore insturction");
+        break;
     case TOKEN_OP_HALLOC: tag = AST_OP_HALLOC;
         break;
     case TOKEN_OP_DEREF: tag = AST_OP_DEREF;

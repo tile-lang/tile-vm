@@ -78,6 +78,8 @@ typedef struct tasm_ast{
         AST_OP_ALOADC,
         AST_OP_LOAD,
         AST_OP_STORE,
+        AST_OP_GLOAD,
+        AST_OP_GSTORE,
         AST_OP_HALLOC,
         AST_OP_DEREF,
         AST_OP_HSET,
@@ -378,6 +380,18 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             break;
         case AST_OP_STORE:
             printf("STORE %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
+            break;
+        case AST_OP_GLOAD:
+            printf("GLOAD %s\n", node->inst.name);
+            if (node->inst.operand) {
+                tasm_ast_show(node->inst.operand, indent + 1);
+            }
+            break;
+        case AST_OP_GSTORE:
+            printf("GSTORE %s\n", node->inst.name);
             if (node->inst.operand) {
                 tasm_ast_show(node->inst.operand, indent + 1);
             }
