@@ -122,7 +122,7 @@ void tasm_lexer_skip_line(tasm_lexer_t* lexer) {
 }
 
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
-    if (lexer->prev_char == '"' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
+    if (lexer->prev_char == '"' && lexer->current_char != '"'&& lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
         return tasm_lexer_collect_str(lexer);
     if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
         return tasm_lexer_collect_char(lexer);
