@@ -118,6 +118,8 @@ case AST_OP_LOADC: \
 case AST_OP_ALOADC: \
 case AST_OP_LOAD: \
 case AST_OP_STORE: \
+case AST_OP_GLOAD: \
+case AST_OP_GSTORE: \
 case AST_OP_HALLOC: \
 case AST_OP_DEREF: \
 case AST_OP_HSET: \
@@ -447,6 +449,26 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                     .operand.type = STACK_OBJ_TYPE_NUMBER,
                     .operand.ui32 = node->inst.operand->number.value.u32,
                     .type = OP_STORE,
+                });
+            }
+            break;
+            case AST_OP_GLOAD:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_GLOAD,
+                });
+            }
+            break;
+        case AST_OP_GSTORE:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_GSTORE,
                 });
             }
             break;
