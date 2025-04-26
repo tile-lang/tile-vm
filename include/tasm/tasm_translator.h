@@ -118,10 +118,14 @@ case AST_OP_LOADC: \
 case AST_OP_ALOADC: \
 case AST_OP_LOAD: \
 case AST_OP_STORE: \
+case AST_OP_GLOAD: \
+case AST_OP_GSTORE: \
 case AST_OP_HALLOC: \
 case AST_OP_DEREF: \
+case AST_OP_DEREFB: \
 case AST_OP_HSET: \
 case AST_OP_PUTS: \
+case AST_OP_PUTC: \
 case AST_OP_NATIVE: \
 case AST_OP_HALT \
 
@@ -450,17 +454,51 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
                 });
             }
             break;
+            case AST_OP_GLOAD:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_GLOAD,
+                });
+            }
+            break;
+        case AST_OP_GSTORE:
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_GSTORE,
+                });
+            }
+            break;
         case AST_OP_HALLOC:
             program_push(translator, (opcode_t){.type = OP_HALLOC});
             break;
         case AST_OP_DEREF:
             program_push(translator, (opcode_t){.type = OP_DEREF});
             break;
+        case AST_OP_DEREFB:
+            program_push(translator, (opcode_t){.type = OP_DEREFB});
+            if (node->inst.operand->tag == AST_NUMBER) {
+                program_push(translator, (opcode_t)
+                {
+                    .operand.type = STACK_OBJ_TYPE_NUMBER,
+                    .operand.ui32 = node->inst.operand->number.value.u32,
+                    .type = OP_DEREFB,
+                });
+            }
+            break;
         case AST_OP_HSET:
             program_push(translator, (opcode_t){.type = OP_HSET});
             break;
         case AST_OP_PUTS:
             program_push(translator, (opcode_t){.type = OP_PUTS});
+            break;
+        case AST_OP_PUTC:
+            program_push(translator, (opcode_t){.type = OP_PUTC});
             break;
         case AST_OP_NATIVE:
             if (node->inst.operand->tag == AST_NUMBER) {

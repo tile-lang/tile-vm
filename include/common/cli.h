@@ -54,10 +54,6 @@ bool cli_tvm_usage(int argc) {
         fprintf(stdout, "    tvm <input.bin>\n");
         return false;
     }
-    else {
-        fprintf(stdout, CLR_YELLOW"Warning: "CLR_END" more than expected input\n");
-        fprintf(stdout, "    tvm <input.bin>\n");
-    }
     return true;
 }
 

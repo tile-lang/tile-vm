@@ -16,6 +16,7 @@
 #define TVM_METADATA_MAX_MODULE_CAPACITY 32
 #define RETURN_STACK_CAPACITY 1024
 #define TVM_MAX_LOCAL_VAR 64
+#define TVM_MAX_GLOBAL_VAR 64
 
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 #define UNUSED_VAR(x) ((void)(x))
@@ -29,6 +30,7 @@ typedef enum {
     EXCEPT_INVALID_INSTRUCTION,
     EXCEPT_INVALID_INSTRUCTION_ACCESS,
     EXCEPT_INVALID_LOCAL_VAR_ACCESS,
+    EXCEPT_INVALID_GLOBAL_VAR_ACCESS,
     EXCEPT_INVALID_CONSTANT_ACCESS,
     EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS,
     EXCEPT_INVALID_NATIVE_FUNCTION_ACCESS,
@@ -36,6 +38,7 @@ typedef enum {
     EXCEPT_DIVISION_BY_ZERO,
     EXCEPT_INVALID_PRIMITIVE_SIZE,
     EXCEPT_INVALID_ARRAY_INDEX,
+    EXCEPT_INVALID_BYTE_SIZE,
 } exception_t;
 
 typedef uint32_t word_t;
@@ -99,13 +102,17 @@ typedef enum {
     OP_ALOADC, // load address of constant to stack
     OP_LOAD,   // load to stack
     OP_STORE,  // store to local variable
+    OP_GLOAD,   // global load to stack
+    OP_GSTORE,  // store to global variable
 
     OP_HALLOC,
     OP_DEREF,
+    OP_DEREFB, // deref for a spesific byte-sized object
     OP_HSET,
 
     /* print to standart output */
     OP_PUTS,
+    OP_PUTC,
     /* native */
     OP_NATIVE,
     /* halt */
@@ -198,6 +205,10 @@ typedef struct tvm_frame {
     object_t local_vars[TVM_MAX_LOCAL_VAR];
 } tvm_frame_t;
 
+typedef struct tvm_gframe {
+    object_t global_vars[TVM_MAX_LOCAL_VAR];
+} tvm_gframe_t;
+
 typedef struct {
     object_t stack[TVM_STACK_CAPACITY];
     word_t sp; // stack pointer
@@ -206,6 +217,7 @@ typedef struct {
     word_t rsp; // return stack pointer
 
     tvm_frame_t* frame;
+    tvm_gframe_t* gframe;
 
     tvm_program_t program;
     word_t ip; // instruction pointer
@@ -225,9 +237,11 @@ void tvm_destroy(tvm_t* vm);
 exception_t tvm_exec_opcode(tvm_t* vm);
 
 tvm_frame_t* tvm_frame_init();
+tvm_gframe_t* tvm_gframe_init();
 tvm_frame_t* tvm_frame_next(tvm_frame_t* node);
 tvm_frame_t* tvm_frame_prev(tvm_frame_t* node);
 void tvm_frame_free(tvm_frame_t* last);
+void tvm_gframe_free(tvm_gframe_t* gframe);
 
 void tvm_run(tvm_t* vm);
 void tvm_stack_dump(tvm_t* vm);
@@ -364,6 +378,8 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_INSTRUCTION_ACCESS";
     case EXCEPT_INVALID_LOCAL_VAR_ACCESS:
         return "EXCEPT_INVALID_LOCAL_VAR_ACCESS";
+    case EXCEPT_INVALID_GLOBAL_VAR_ACCESS:
+        return "EXCEPT_INVALID_GLOBAL_VAR_ACCESS";
     case EXCEPT_INVALID_CONSTANT_ACCESS:
         return "EXCEPT_INVALID_CONSTANT_ACCESS";
     case EXCEPT_INVALID_CONSTANT_ADDRESS_ACCESS:
@@ -378,6 +394,8 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_PRIMITIVE_SIZE";
     case EXCEPT_INVALID_ARRAY_INDEX:
         return "EXCEPT_INVALID_ARRAY_INDEX";
+    case EXCEPT_INVALID_BYTE_SIZE:
+        return "EXCEPT_INVALID_BYTE_SIZE";
         
     default:
         fprintf(stderr, "Unhandled exception string on function: exception_to_cstr\n");
@@ -405,6 +423,7 @@ tvm_t tvm_init() {
             .program_arena = arena_init(1024),
         },
         .frame = tvm_frame_init(),
+        .gframe = tvm_gframe_init(),
         .ip = 0,
         .halted = 0,
     };
@@ -413,6 +432,7 @@ tvm_t tvm_init() {
 void tvm_destroy(tvm_t* vm) {
     if (vm->program.program_arena)
         arena_destroy(vm->program.program_arena);
+    tvm_gframe_free(vm->gframe);
 }
 
 exception_t tvm_exec_opcode(tvm_t* vm) {
@@ -833,6 +853,22 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->frame->local_vars[inst.operand.ui32] = vm->stack[--vm->sp];
         vm->ip++;
         break;
+    case OP_GLOAD:
+        if (vm->sp >= TVM_STACK_CAPACITY)
+            return EXCEPT_STACK_OVERFLOW;
+        if (inst.operand.ui32 >= TVM_MAX_LOCAL_VAR)
+            return EXCEPT_INVALID_GLOBAL_VAR_ACCESS;
+        vm->stack[vm->sp++] = vm->gframe->global_vars[inst.operand.ui32];
+        vm->ip++;
+        break;
+    case OP_GSTORE:
+        if (vm->sp <= 0)
+            return EXCEPT_STACK_UNDERFLOW;
+        if (inst.operand.ui32 >= TVM_MAX_LOCAL_VAR)
+            return EXCEPT_INVALID_GLOBAL_VAR_ACCESS;
+        vm->gframe->global_vars[inst.operand.ui32] = vm->stack[--vm->sp];
+        vm->ip++;
+        break;
     case OP_HALLOC:
         if (vm->sp < 2)
             return EXCEPT_STACK_UNDERFLOW;
@@ -847,6 +883,26 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->stack[vm->sp - 1].ui64 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64)));
         vm->ip++;
         break;
+    case OP_DEREFB:
+        if (vm->sp <= 0)
+            return EXCEPT_STACK_UNDERFLOW;
+#define DEREFB_CHAR_SIZE  1
+#define DEREFB_INT_SIZE   4
+#define DEREFB_PTR_SIZE   sizeof(void*)
+        if (inst.operand.i32 <= DEREFB_CHAR_SIZE && inst.operand.ui32 > DEREFB_PTR_SIZE) // TODO: (discuss and research that what would be the max size can be dereferanced for different architectures etc.)
+            return EXCEPT_INVALID_BYTE_SIZE;
+        switch (inst.operand.i32)
+        {
+        case DEREFB_CHAR_SIZE: vm->stack[vm->sp - 1].ui8 = (*((char*)(vm->stack[vm->sp - 1].ui64))); break;
+        case DEREFB_INT_SIZE: vm->stack[vm->sp - 1].ui32 = (*((int32_t*)(vm->stack[vm->sp - 1].ui64))); break;
+#ifdef __x86_64__
+        case DEREFB_PTR_SIZE: vm->stack[vm->sp - 1].ui32 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64))); break;
+#endif
+        default:
+            return EXCEPT_INVALID_BYTE_SIZE;
+        }
+        vm->ip++;
+        break;
     case OP_HSET:
         if (vm->sp < 4)
             return EXCEPT_STACK_UNDERFLOW;
@@ -856,10 +912,10 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         gc_block* addr = (gc_block*)(vm->stack[vm->sp - 3].ui64); // beginning address of the value (it should be)
         
         uint64_t size = addr->size;
-        printf("size: %d\n", size);
-        printf("offset: %d\n", offset);
-        printf("byte_size: %d\n", byte_size);
-        printf("index: %d\n", index);
+        // printf("size: %d\n", size);
+        // printf("offset: %d\n", offset);
+        // printf("byte_size: %d\n", byte_size);
+        // printf("index: %d\n", index);
         if (offset >= size) {
             return EXCEPT_INVALID_ARRAY_INDEX;
         }
@@ -883,6 +939,12 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
         fputs((const char*)vm->stack[--vm->sp].ui64, stdout);
+        vm->ip++;
+        break;
+    case OP_PUTC:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        putc(vm->stack[--vm->sp].ui8, stdout);
         vm->ip++;
         break;
     case OP_NATIVE: {
@@ -931,6 +993,12 @@ tvm_frame_t* tvm_frame_init() {
     return frame;
 }
 
+tvm_gframe_t* tvm_gframe_init() {
+    tvm_gframe_t* gframe = (tvm_gframe_t*)malloc(sizeof(tvm_gframe_t));
+    memset(gframe->global_vars, 0, sizeof(object_t)*TVM_MAX_GLOBAL_VAR);
+    return gframe;
+}
+
 tvm_frame_t* tvm_frame_next(tvm_frame_t* node) {
     node->next = tvm_frame_init();
     node->next->prev = node;
@@ -949,6 +1017,11 @@ void tvm_frame_free(tvm_frame_t* last) {
         free(last);
 }
 
+void tvm_gframe_free(tvm_gframe_t* gframe) {
+    if (gframe)
+        free(gframe);
+}
+
 void tgc_collect(tvm_frame_t* root) {
     // Mark phase: Traverse all variables
     for (size_t i = 0; i < TVM_MAX_LOCAL_VAR; i++) {
@@ -961,7 +1034,6 @@ void tgc_collect(tvm_frame_t* root) {
 
 void tvm_run(tvm_t* vm) {
     static unsigned int tgc_counter = 0;
-    printf("test: %d\n", sizeof(gc_block));
     while (!vm->halted && vm->ip <= vm->program.size) {
         exception_t except = tvm_exec_opcode(vm);
         if (except != EXCEPT_OK) {

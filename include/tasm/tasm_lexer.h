@@ -122,7 +122,7 @@ void tasm_lexer_skip_line(tasm_lexer_t* lexer) {
 }
 
 tasm_token_t tasm_lexer_get_next_token(tasm_lexer_t* lexer) {
-    if (lexer->prev_char == '"' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
+    if (lexer->prev_char == '"' && lexer->current_char != '"'&& lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '\'')
         return tasm_lexer_collect_str(lexer);
     if (lexer->prev_char == '\'' && lexer->current_char != '\n' && lexer->current_char != EOF && lexer->current_char != '"')
         return tasm_lexer_collect_char(lexer);
@@ -239,11 +239,31 @@ tasm_token_t tasm_lexer_collect_str(tasm_lexer_t *lexer) {
             );
             break;
         }
-        temp_val[len] = lexer->current_char;
-        len++;
+        // FIXME: '\0' doesn't work for some reason?!
+        if (lexer->current_char == '\\') {
+            tasm_lexer_advance(lexer); // advance to escape character
+            switch (lexer->current_char) {
+                case 'n':  temp_val[len++] = '\n'; break;
+                case 't':  temp_val[len++] = '\t'; break;
+                case 'r':  temp_val[len++] = '\r'; break;
+                case '\\': temp_val[len++] = '\\'; break;
+                case '"':  temp_val[len++] = '"';  break;
+                case '0':  temp_val[len++] = '\0'; break;
+                default:
+                    printf("%s:%d:%d: "CLR_RED"ERROR"CLR_END" unknown escape sequence '\\%c'\n",
+                        lexer->loc.file_name,
+                        lexer->loc.row,
+                        lexer->loc.col,
+                        lexer->current_char);
+                    break;
+            }
+        } else {
+            temp_val[len++] = lexer->current_char;
+        }
+
         tasm_lexer_advance(lexer);
     }
-    // tasm_lexer_advance(lexer);
+
     temp_val[len] = '\0';
     len++;
     char* val = (char*)arena_alloc(&lexer->tokens_arena, len);
@@ -340,7 +360,7 @@ tasm_token_t tasm_lexer_collect_binary_number(tasm_lexer_t *lexer) {
     return token;
 }
 
-const size_t _inst_strings_count = 58;
+const size_t _inst_strings_count = 62;
 
 const char* _inst_strings_lower[] = {
     "nop", "push", "pop",
@@ -354,9 +374,9 @@ const char* _inst_strings_lower[] = {
     "gt", "gtf", "lt", "ltf", "eq", "eqf", "ge", "gef", "le", "lef",
     "and", "or", "not",
     "band", "bor", "bnot", "lshft", "rshft",
-    "loadc", "aloadc", "load",  "store",
-    "halloc", "deref", "hset",
-    "puts",
+    "loadc", "aloadc", "load",  "store", "gload",  "gstore",
+    "halloc", "deref", "derefb", "hset",
+    "puts", "putc",
     "native",
     "hlt"
 };
@@ -373,9 +393,9 @@ const char* _inst_strings_upper[] = {
     "GT", "GTF", "LT", "LTF", "EQ", "EQF", "GE", "GEF", "LE", "LEF",
     "AND", "OR", "NOT",
     "BAND", "BOR", "BNOT", "LSHFT", "RSHFT",
-    "LOADC", "ALOADC", "LOAD",  "STORE",
-    "HALLOC", "DEREF", "HSET",
-    "PUTS",
+    "LOADC", "ALOADC", "LOAD",  "STORE", "GLOAD",  "GSTORE",
+    "HALLOC", "DEREF", "DEREFB", "HSET",
+    "PUTS", "PUTC",
     "NATIVE",
     "HLT"
 };
