@@ -481,7 +481,6 @@ static void tasm_translate_line(tasm_translator_t* translator, tasm_ast_t* node,
             program_push(translator, (opcode_t){.type = OP_DEREF});
             break;
         case AST_OP_DEREFB:
-            program_push(translator, (opcode_t){.type = OP_DEREFB});
             if (node->inst.operand->tag == AST_NUMBER) {
                 program_push(translator, (opcode_t)
                 {

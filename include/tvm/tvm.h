@@ -38,7 +38,7 @@ typedef enum {
     EXCEPT_DIVISION_BY_ZERO,
     EXCEPT_INVALID_PRIMITIVE_SIZE,
     EXCEPT_INVALID_ARRAY_INDEX,
-    EXCEPT_INVALID_BYTE_SIZE,
+    EXCEPT_INVALID_BYTE_SIZE
 } exception_t;
 
 typedef uint32_t word_t;
@@ -372,6 +372,10 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_STACK_UNDERFLOW";
     case EXCEPT_STACK_OVERFLOW:
         return "EXCEPT_STACK_OVERFLOW";
+    case EXCEPT_RETURN_STACK_UNDERFLOW:
+        return "EXCEPT_RETURN_STACK_UNDERFLOW";
+    case EXCEPT_RETURN_STACK_OVERFLOW:
+        return "EXCEPT_RETURN_STACK_OVERFLOW";
     case EXCEPT_INVALID_INSTRUCTION:
         return "EXCEPT_INVALID_INSTRUCTION";
     case EXCEPT_INVALID_INSTRUCTION_ACCESS:
@@ -398,7 +402,7 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_BYTE_SIZE";
         
     default:
-        fprintf(stderr, "Unhandled exception string on function: exception_to_cstr\n");
+        fprintf(stderr, "Unhandled exception string on function: exception_to_cstr: except_code: %d\n", except);
         break;
     }
     return NULL;
@@ -889,7 +893,8 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
 #define DEREFB_CHAR_SIZE  1
 #define DEREFB_INT_SIZE   4
 #define DEREFB_PTR_SIZE   sizeof(void*)
-        if (inst.operand.i32 <= DEREFB_CHAR_SIZE && inst.operand.ui32 > DEREFB_PTR_SIZE) // TODO: (discuss and research that what would be the max size can be dereferanced for different architectures etc.)
+        // TODO: (discuss and research that what would be the max size can be dereferanced for different architectures etc.)
+        if (inst.operand.i32 < DEREFB_CHAR_SIZE || inst.operand.ui32 > DEREFB_PTR_SIZE)
             return EXCEPT_INVALID_BYTE_SIZE;
         switch (inst.operand.i32)
         {
