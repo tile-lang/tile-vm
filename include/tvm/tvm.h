@@ -38,6 +38,7 @@ typedef enum {
     EXCEPT_DIVISION_BY_ZERO,
     EXCEPT_INVALID_PRIMITIVE_SIZE,
     EXCEPT_INVALID_ARRAY_INDEX,
+    EXCEPT_INVALID_BYTE_SIZE,
 } exception_t;
 
 typedef uint32_t word_t;
@@ -106,10 +107,12 @@ typedef enum {
 
     OP_HALLOC,
     OP_DEREF,
+    OP_DEREFB, // deref for a spesific byte-sized object
     OP_HSET,
 
     /* print to standart output */
     OP_PUTS,
+    OP_PUTC,
     /* native */
     OP_NATIVE,
     /* halt */
@@ -391,6 +394,8 @@ const char* exception_to_cstr(exception_t except) {
         return "EXCEPT_INVALID_PRIMITIVE_SIZE";
     case EXCEPT_INVALID_ARRAY_INDEX:
         return "EXCEPT_INVALID_ARRAY_INDEX";
+    case EXCEPT_INVALID_BYTE_SIZE:
+        return "EXCEPT_INVALID_BYTE_SIZE";
         
     default:
         fprintf(stderr, "Unhandled exception string on function: exception_to_cstr\n");
@@ -878,6 +883,26 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->stack[vm->sp - 1].ui64 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64)));
         vm->ip++;
         break;
+    case OP_DEREFB:
+        if (vm->sp <= 0)
+            return EXCEPT_STACK_UNDERFLOW;
+#define DEREFB_CHAR_SIZE  1
+#define DEREFB_INT_SIZE   4
+#define DEREFB_PTR_SIZE   sizeof(void*)
+        if (inst.operand.i32 <= DEREFB_CHAR_SIZE && inst.operand.ui32 > DEREFB_PTR_SIZE) // TODO: (discuss and research that what would be the max size can be dereferanced for different architectures etc.)
+            return EXCEPT_INVALID_BYTE_SIZE;
+        switch (inst.operand.i32)
+        {
+        case DEREFB_CHAR_SIZE: vm->stack[vm->sp - 1].ui8 = (*((char*)(vm->stack[vm->sp - 1].ui64))); break;
+        case DEREFB_INT_SIZE: vm->stack[vm->sp - 1].ui32 = (*((int32_t*)(vm->stack[vm->sp - 1].ui64))); break;
+#ifdef __x86_64__
+        case DEREFB_PTR_SIZE: vm->stack[vm->sp - 1].ui32 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64))); break;
+#endif
+        default:
+            return EXCEPT_INVALID_BYTE_SIZE;
+        }
+        vm->ip++;
+        break;
     case OP_HSET:
         if (vm->sp < 4)
             return EXCEPT_STACK_UNDERFLOW;
@@ -887,10 +912,10 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         gc_block* addr = (gc_block*)(vm->stack[vm->sp - 3].ui64); // beginning address of the value (it should be)
         
         uint64_t size = addr->size;
-        printf("size: %d\n", size);
-        printf("offset: %d\n", offset);
-        printf("byte_size: %d\n", byte_size);
-        printf("index: %d\n", index);
+        // printf("size: %d\n", size);
+        // printf("offset: %d\n", offset);
+        // printf("byte_size: %d\n", byte_size);
+        // printf("index: %d\n", index);
         if (offset >= size) {
             return EXCEPT_INVALID_ARRAY_INDEX;
         }
@@ -914,6 +939,12 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
         fputs((const char*)vm->stack[--vm->sp].ui64, stdout);
+        vm->ip++;
+        break;
+    case OP_PUTC:
+        if (vm->sp < 1)
+            return EXCEPT_STACK_UNDERFLOW;
+        putc(vm->stack[--vm->sp].ui8, stdout);
         vm->ip++;
         break;
     case OP_NATIVE: {
@@ -951,7 +982,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         return EXCEPT_INVALID_INSTRUCTION;
         break;
     }
-    tvm_stack_dump(vm);
+    // tvm_stack_dump(vm);
     return EXCEPT_OK;
 }
 

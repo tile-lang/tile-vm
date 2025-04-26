@@ -61,11 +61,11 @@ uintptr_t tgc_create_block(size_t size, size_t pointer_count) {
         fprintf(stderr, "tgc_create_block: Misaligned value=%p\n", block.value);
     }
 
-    printf("heap_size: %llu\n", __heap_block_count);
+    // printf("heap_size: %llu\n", __heap_block_count);
     // TODO: set the array capacity of heap bigger than 10 (10 is default, use arrsetcap)
-    printf("cap: %llu\n", arrcap(__heap));
-    printf("last_block_addr: %p\n", block_addr);
-    printf("sizeof(uintptr_t): %d\nsizeof(uint64_t): %d\n", sizeof(uintptr_t), sizeof(uint64_t));
+    // printf("cap: %llu\n", arrcap(__heap));
+    // printf("last_block_addr: %p\n", block_addr);
+    // printf("sizeof(uintptr_t): %d\nsizeof(uint64_t): %d\n", sizeof(uintptr_t), sizeof(uint64_t));
     return block_addr;
 }
 

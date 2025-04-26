@@ -30,6 +30,7 @@
 #define COMPSITE_ERR_LOAD_WRONG_OPERAND                2702
 #define COMPSITE_ERR_STORE_WRONG_OPERAND               2802
 #define COMPSITE_ERR_NATIVE_WRONG_OPERAND              2902
+#define COMPSITE_ERR_DEREFB_WRONG_OPERAND              3002
 #define COMPSITE_ERR_PROC_INSIDE_PROC                  3401
 #define COMPSITE_ERR_META_INSIDE_PROC                  3601
 #define COMPSITE_ERR_CINTERFACE_RET_TYPE_ERR           4000
@@ -155,6 +156,9 @@ void tasm_parser_eat_err_msg(int token_type) {
         break;
     case COMPSITE_ERR_NATIVE_WRONG_OPERAND:
         fprintf(stderr, "COMPSITE_ERR_NATIVE_WRONG_OPERAND\n");
+        break;
+    case COMPSITE_ERR_DEREFB_WRONG_OPERAND:
+        fprintf(stderr, "COMPSITE_ERR_DEREFB_WRONG_OPERAND\n");
         break;
     case COMPSITE_ERR_PROC_INSIDE_PROC:
         fprintf(stderr, "COMPSITE_ERR_PROC_INSIDE_PROC\n");
@@ -623,9 +627,15 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_DEREF: tag = AST_OP_DEREF;
         break;
+    case TOKEN_OP_DEREFB: tag = AST_OP_DEREFB;
+        operand = tasm_parse_int_operand(parser);
+        if (operand == NULL) tasm_parser_err(parser, COMPSITE_ERR_DEREFB_WRONG_OPERAND, "Wrong operand for derefb insturction");
+        break;
     case TOKEN_OP_HSET: tag = AST_OP_HSET;
         break;
     case TOKEN_OP_PUTS: tag = AST_OP_PUTS;
+        break;
+    case TOKEN_OP_PUTC: tag = AST_OP_PUTC;
         break;
     case TOKEN_OP_NATIVE: tag = AST_OP_NATIVE;
         operand = tasm_parse_int_operand(parser);
