@@ -109,6 +109,7 @@ typedef enum {
     OP_DEREF,
     OP_DEREFB, // deref for a spesific byte-sized object
     OP_HSET,
+    OP_HSETOF, // offset version of hset
 
     /* print to standart output */
     OP_PUTS,
@@ -908,7 +909,7 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         }
         vm->ip++;
         break;
-    case OP_HSET:
+    case OP_HSET: {
         if (vm->sp < 4)
             return EXCEPT_STACK_UNDERFLOW;
         uint32_t byte_size = vm->stack[vm->sp - 1].i32;  // byte_size
@@ -940,6 +941,35 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
         vm->sp -= 4;
         vm->ip++;
         break;
+    }
+    case OP_HSETOF: {
+        if (vm->sp < 4)
+            return EXCEPT_STACK_UNDERFLOW;
+        uint32_t type_size = vm->stack[vm->sp - 1].i32;  // type_size
+        uint32_t offset = vm->stack[vm->sp - 2].i32;     // offset
+        gc_block* addr = (gc_block*)(vm->stack[vm->sp - 3].ui64); // beginning address of the value (it should be)
+        
+        uint64_t size = addr->size;
+        if (offset >= size) {
+            return EXCEPT_INVALID_ARRAY_INDEX; // FIXME: here with a correct runtime error
+        }
+
+        switch (type_size)
+        {
+#ifdef __x86_64__
+        case sizeof(uint32_t): *(uint32_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
+        case sizeof(uint8_t): *(uint8_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
+        case sizeof(uint64_t): *(uint64_t*)(addr->value + offset) = vm->stack[vm->sp - 4].ui64; break;
+#elif defined(__i386__)
+        case sizeof(uint32_t): *(uint32_t*)((uint32_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui32; break;
+        case sizeof(uint8_t): *(uint8_t*)((uint8_t*)addr->value + offset) = vm->stack[vm->sp - 4].ui8; break;
+#endif
+        default: return EXCEPT_INVALID_PRIMITIVE_SIZE;
+        }
+        vm->sp -= 4;
+        vm->ip++;
+        break;
+    }
     case OP_PUTS:
         if (vm->sp < 1)
             return EXCEPT_STACK_UNDERFLOW;
