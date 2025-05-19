@@ -898,10 +898,10 @@ exception_t tvm_exec_opcode(tvm_t* vm) {
             return EXCEPT_INVALID_BYTE_SIZE;
         switch (inst.operand.i32)
         {
-        case DEREFB_CHAR_SIZE: vm->stack[vm->sp - 1].ui8 = (*((char*)(vm->stack[vm->sp - 1].ui64))); break;
-        case DEREFB_INT_SIZE: vm->stack[vm->sp - 1].ui32 = (*((int32_t*)(vm->stack[vm->sp - 1].ui64))); break;
+        case DEREFB_CHAR_SIZE: vm->stack[vm->sp - 1].ui64 = (char)(*((char*)(vm->stack[vm->sp - 1].ui64))); break;
+        case DEREFB_INT_SIZE: vm->stack[vm->sp - 1].ui64 = (int32_t)(*((int32_t*)(vm->stack[vm->sp - 1].ui64))); break;
 #ifdef __x86_64__
-        case DEREFB_PTR_SIZE: vm->stack[vm->sp - 1].ui32 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64))); break;
+        case DEREFB_PTR_SIZE: vm->stack[vm->sp - 1].ui64 = (uintptr_t)(*((uintptr_t*)(vm->stack[vm->sp - 1].ui64))); break;
 #endif
         default:
             return EXCEPT_INVALID_BYTE_SIZE;
