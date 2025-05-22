@@ -84,6 +84,7 @@ typedef struct tasm_ast{
         AST_OP_DEREF,
         AST_OP_DEREFB,
         AST_OP_HSET,
+        AST_OP_HSETOF,
         AST_OP_PUTS,
         AST_OP_PUTC,
         AST_OP_NATIVE,
@@ -400,6 +401,12 @@ void tasm_ast_show(tasm_ast_t* node, int indent) {
             break;
         case AST_OP_HALLOC:
             printf("HALLOC\n");
+            break;
+        case AST_OP_HSET:
+            printf("HSET\n");
+            break;
+        case AST_OP_HSETOF:
+            printf("HSETOF\n");
             break;
         case AST_OP_PUTS:
             printf("PUTS\n");
