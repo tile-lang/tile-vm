@@ -90,6 +90,7 @@ typedef enum {
     TOKEN_OP_DEREF,
     TOKEN_OP_DEREFB,
     TOKEN_OP_HSET,
+    TOKEN_OP_HSETOF,
     TOKEN_OP_PUTS,
     TOKEN_OP_PUTC,
     TOKEN_OP_NATIVE,

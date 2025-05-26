@@ -633,6 +633,8 @@ tasm_ast_t* tasm_parse_instruction(tasm_parser_t* parser) {
         break;
     case TOKEN_OP_HSET: tag = AST_OP_HSET;
         break;
+    case TOKEN_OP_HSETOF: tag = AST_OP_HSETOF;
+        break;
     case TOKEN_OP_PUTS: tag = AST_OP_PUTS;
         break;
     case TOKEN_OP_PUTC: tag = AST_OP_PUTC;
